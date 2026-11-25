@@ -1,0 +1,76 @@
+# Crop Advisor AI — website + API + database + open-source AI (Ollama)
+#   docker compose up -d --build        then open http://localhost:8080
+# First start downloads the AI models into the persistent ollama_data volume.
+services:
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "8080:80"
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://crop:${POSTGRES_PASSWORD:-crop_dev_password}@db:5432/crop_advisor
+      AI_PROVIDER: ${AI_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
+      GEMINI_TIMEOUT: ${GEMINI_TIMEOUT:-60}
+      GEMINI_FALLBACK_MODELS: ${GEMINI_FALLBACK_MODELS:-gemini-flash-lite-latest}
+      # Same settings as the Dietitian AI API — point OLLAMA_BASE_URL at an existing Ollama server to share it.
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-qwen3-vl:2b}
+      OLLAMA_AUTO_PULL: ${OLLAMA_AUTO_PULL:-true}
+      UPLOAD_DIR: /data/uploads
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/data/uploads
+
+  ollama:
+    profiles: ["ollama"]
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    environment:
+      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-1}
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # NVIDIA GPU (much faster). Needs the NVIDIA Container Toolkit; remove the comment marks to enable.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: crop
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crop_dev_password}
+      POSTGRES_DB: crop_advisor
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crop -d crop_advisor"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  uploads:
+  ollama_data:

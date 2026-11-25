@@ -1,0 +1,186 @@
+{
+  "tomato": {
+    "name": "Tomato",
+    "watering": {
+      "weekly_mm": [25, 50],
+      "summary": "Water deeply 2–3 times a week so the soil stays evenly moist, about 25–50 mm (1–2 in) per week. Increase during flowering, fruiting and hot spells. Water at the base in the morning and keep foliage dry.",
+      "stages": {
+        "seedling": "Keep the top 2–3 cm of soil moist; light watering every 1–2 days.",
+        "vegetative": "Deep watering 2 times a week (about 25 mm/week).",
+        "flowering": "Even moisture is critical; 2–3 deep waterings a week.",
+        "fruiting": "Up to 50 mm/week in heat. Avoid wet–dry swings that cause blossom-end rot and fruit cracking.",
+        "mature": "Reduce slightly as fruit ripens to improve flavour and limit cracking."
+      }
+    },
+    "fertilizer": {
+      "seedling": {"name": "Balanced starter fertilizer (half strength)", "npk": [10, 10, 10], "application": "Mix into the planting hole or apply as a diluted liquid feed.", "timing": "At transplanting"},
+      "vegetative": {"name": "Balanced NPK granular fertilizer (e.g., 10-10-10 or similar)", "npk": [10, 10, 10], "application": "Broadcast around the plant, 10–15 cm from the stem, and water in.", "timing": "Every 3–4 weeks until flowering"},
+      "flowering": {"name": "Low-N, higher-P/K fertilizer (e.g., 5-10-10)", "npk": [5, 10, 10], "application": "Side-dress along the row and water in.", "timing": "When the first flowers open"},
+      "fruiting": {"name": "High-potassium fertilizer (e.g., 5-10-15) plus calcium", "npk": [5, 10, 15], "application": "Side-dress or fertigate; add calcium nitrate if blossom-end rot appears.", "timing": "Every 3–4 weeks once fruit sets"},
+      "mature": {"name": "Light potassium feed", "npk": [0, 0, 20], "application": "Optional light side-dress.", "timing": "Stop 2–3 weeks before final harvest"}
+    },
+    "harvest": "Pick at the 'breaker' stage (first blush of colour) or later. Ripe fruit has full, even colour for the variety, a glossy skin and gives slightly to gentle pressure. Breaker-stage fruit ripens well indoors at 18–25 °C.",
+    "days_to_harvest": [60, 85]
+  },
+  "maize": {
+    "name": "Maize (Corn)",
+    "watering": {
+      "weekly_mm": [25, 40],
+      "summary": "About 25–40 mm per week. The most critical period is from 2 weeks before tasselling to 2 weeks after silking — water stress then sharply reduces yield.",
+      "stages": {
+        "seedling": "Keep the seedbed moist for even emergence.",
+        "vegetative": "About 25 mm/week; deep, infrequent watering builds roots.",
+        "flowering": "Never let plants wilt during tasselling and silking; up to 40 mm/week.",
+        "fruiting": "Keep moisture steady through grain fill (milk and dough stages).",
+        "mature": "Stop irrigating once kernels reach the dent stage."
+      }
+    },
+    "fertilizer": {
+      "seedling": {"name": "Planting fertilizer with phosphorus (e.g., 2:3:2 or 10-20-10)", "npk": [10, 20, 10], "application": "Band 5 cm beside and below the seed at planting.", "timing": "At planting"},
+      "vegetative": {"name": "Nitrogen top-dressing (LAN/CAN or urea)", "npk": [28, 0, 0], "application": "Apply beside the rows and incorporate or water in; split into 2 applications.", "timing": "At 4–6 leaves and again at 8–10 leaves"},
+      "flowering": {"name": "Light nitrogen top-up only if leaves are pale", "npk": [28, 0, 0], "application": "Side-dress lightly.", "timing": "Before tasselling"},
+      "fruiting": {"name": "No further fertilizer usually needed", "npk": [0, 0, 0], "application": "Focus on water.", "timing": "—"},
+      "mature": {"name": "None", "npk": [0, 0, 0], "application": "—", "timing": "—"}
+    },
+    "harvest": "Green mealies/sweetcorn: about 18–24 days after silking, when silks are brown and dry and a punctured kernel shows milky juice. Grain maize: harvest after the black layer forms at the base of the kernels and husks are dry; dry grain to about 12.5–13% moisture for storage.",
+    "days_to_harvest": [70, 140]
+  },
+  "potato": {
+    "name": "Potato",
+    "watering": {
+      "weekly_mm": [25, 50],
+      "summary": "About 25–50 mm per week with even moisture, especially from tuber initiation (around flowering) onward. Uneven watering causes growth cracks and hollow heart.",
+      "stages": {
+        "seedling": "Light moisture after planting; avoid waterlogging seed pieces.",
+        "vegetative": "About 25 mm/week.",
+        "flowering": "Tuber initiation — keep soil consistently moist.",
+        "fruiting": "Tuber bulking — highest water need, up to 50 mm/week.",
+        "mature": "Reduce, then stop once vines yellow so skins set."
+      }
+    },
+    "fertilizer": {
+      "seedling": {"name": "Planting fertilizer rich in P and K (e.g., 2:3:4)", "npk": [8, 12, 16], "application": "Band in the furrow below and beside the seed.", "timing": "At planting"},
+      "vegetative": {"name": "Nitrogen side-dress at hilling", "npk": [28, 0, 0], "application": "Apply along the row, then hill soil over it.", "timing": "At first hilling"},
+      "flowering": {"name": "Potassium-rich fertilizer", "npk": [0, 0, 50], "application": "Side-dress if soil K is low.", "timing": "At tuber initiation"},
+      "fruiting": {"name": "None usually needed", "npk": [0, 0, 0], "application": "—", "timing": "—"},
+      "mature": {"name": "None", "npk": [0, 0, 0], "application": "—", "timing": "—"}
+    },
+    "harvest": "New potatoes can be lifted 2–3 weeks after flowering. For storage potatoes, wait until vines die back, then leave tubers in the ground 2–3 weeks so skins set (skin should not rub off with your thumb).",
+    "days_to_harvest": [70, 120]
+  },
+  "pepper": {
+    "name": "Pepper (Chilli / Bell)",
+    "watering": {
+      "weekly_mm": [25, 40],
+      "summary": "About 25–40 mm per week with consistent moisture; peppers are sensitive to both drought and waterlogging. Mulch to keep soil moisture even.",
+      "stages": {
+        "seedling": "Keep evenly moist.",
+        "vegetative": "Deep watering twice a week.",
+        "flowering": "Water stress causes flower drop — keep moisture steady.",
+        "fruiting": "Consistent moisture prevents blossom-end rot.",
+        "mature": "Maintain until last harvest."
+      }
+    },
+    "fertilizer": {
+      "seedling": {"name": "Balanced starter fertilizer", "npk": [10, 10, 10], "application": "Mix into planting holes.", "timing": "At transplanting"},
+      "vegetative": {"name": "Balanced NPK (e.g., 10-10-10)", "npk": [10, 10, 10], "application": "Side-dress and water in.", "timing": "Every 4 weeks"},
+      "flowering": {"name": "Lower-N, higher-K fertilizer (e.g., 5-10-10)", "npk": [5, 10, 10], "application": "Side-dress.", "timing": "At first flowers"},
+      "fruiting": {"name": "High-potassium fertilizer plus calcium", "npk": [5, 10, 15], "application": "Side-dress or fertigate.", "timing": "Every 3–4 weeks during fruiting"},
+      "mature": {"name": "Light potassium feed", "npk": [0, 0, 20], "application": "Optional.", "timing": "—"}
+    },
+    "harvest": "Green peppers can be picked once full size and firm. For coloured peppers, wait until the fruit is fully coloured. Cut, don't pull, with a short stem attached.",
+    "days_to_harvest": [60, 90]
+  },
+  "beans": {
+    "name": "Beans",
+    "watering": {
+      "weekly_mm": [25, 35],
+      "summary": "About 25 mm per week, more during flowering and pod fill. Water at the base; wet foliage spreads rust and bacterial blight.",
+      "stages": {
+        "seedling": "Moist but not soggy; seeds rot in waterlogged soil.",
+        "vegetative": "About 25 mm/week.",
+        "flowering": "Critical — drought causes flower and pod drop.",
+        "fruiting": "Keep moisture steady through pod fill.",
+        "mature": "Stop watering dry beans once pods start to yellow."
+      }
+    },
+    "fertilizer": {
+      "seedling": {"name": "Low-N, P-rich fertilizer (e.g., 5-10-10)", "npk": [5, 10, 10], "application": "Band beside the seed. Beans fix their own nitrogen; inoculate seed with Rhizobium where beans haven't grown before.", "timing": "At planting"},
+      "vegetative": {"name": "Usually none", "npk": [0, 0, 0], "application": "Excess nitrogen gives leaves instead of pods.", "timing": "—"},
+      "flowering": {"name": "Potassium if soil test shows low K", "npk": [0, 0, 50], "application": "Side-dress lightly.", "timing": "At flowering"},
+      "fruiting": {"name": "None", "npk": [0, 0, 0], "application": "—", "timing": "—"},
+      "mature": {"name": "None", "npk": [0, 0, 0], "application": "—", "timing": "—"}
+    },
+    "harvest": "Green beans: pick when pods are firm, snap cleanly and seeds inside are still small — every 2–3 days. Dry beans: harvest when most pods are dry and rattle.",
+    "days_to_harvest": [50, 100]
+  },
+  "cabbage": {
+    "name": "Cabbage",
+    "watering": {
+      "weekly_mm": [25, 40],
+      "summary": "About 25–40 mm per week with even moisture. Heavy watering after a dry spell makes mature heads split.",
+      "stages": {
+        "seedling": "Keep moist after transplanting.",
+        "vegetative": "Regular deep watering.",
+        "flowering": "—",
+        "fruiting": "Head formation — highest water need.",
+        "mature": "Reduce slightly to prevent splitting."
+      }
+    },
+    "fertilizer": {
+      "seedling": {"name": "Balanced starter fertilizer (e.g., 2:3:2)", "npk": [10, 15, 10], "application": "Incorporate before transplanting.", "timing": "At transplanting"},
+      "vegetative": {"name": "Nitrogen top-dressing (LAN/CAN)", "npk": [28, 0, 0], "application": "Side-dress and water in.", "timing": "3 and 6 weeks after transplanting"},
+      "flowering": {"name": "—", "npk": [0, 0, 0], "application": "—", "timing": "—"},
+      "fruiting": {"name": "Light nitrogen if leaves are pale", "npk": [28, 0, 0], "application": "Side-dress.", "timing": "Early head formation"},
+      "mature": {"name": "None", "npk": [0, 0, 0], "application": "—", "timing": "—"}
+    },
+    "harvest": "Harvest when heads are firm and solid when squeezed and have reached the variety's size. Cut at the base, leaving a few wrapper leaves.",
+    "days_to_harvest": [70, 120]
+  },
+  "wheat": {
+    "name": "Wheat",
+    "watering": {
+      "weekly_mm": [20, 35],
+      "summary": "Critical water periods are tillering, booting/heading and grain fill. Rain-fed crops depend on stored soil moisture.",
+      "stages": {
+        "seedling": "Moist seedbed for establishment.",
+        "vegetative": "Tillering — avoid stress.",
+        "flowering": "Heading and flowering — most sensitive stage.",
+        "fruiting": "Grain fill — steady moisture.",
+        "mature": "No irrigation after hard dough."
+      }
+    },
+    "fertilizer": {
+      "seedling": {"name": "Planting fertilizer with P (e.g., 3:2:1 or MAP)", "npk": [11, 52, 0], "application": "Band with the seed.", "timing": "At planting"},
+      "vegetative": {"name": "Nitrogen top-dressing", "npk": [28, 0, 0], "application": "Broadcast before rain or irrigation.", "timing": "At tillering"},
+      "flowering": {"name": "Optional late N for grain protein", "npk": [28, 0, 0], "application": "Light application.", "timing": "Flag leaf stage"},
+      "fruiting": {"name": "None", "npk": [0, 0, 0], "application": "—", "timing": "—"},
+      "mature": {"name": "None", "npk": [0, 0, 0], "application": "—", "timing": "—"}
+    },
+    "harvest": "Harvest when grain is hard (cannot be dented with a thumbnail), straw is golden, and grain moisture is around 12–14%.",
+    "days_to_harvest": [100, 150]
+  },
+  "spinach": {
+    "name": "Spinach",
+    "watering": {
+      "weekly_mm": [25, 30],
+      "summary": "Shallow roots need frequent light watering — about 25 mm per week. Drought and heat trigger bolting.",
+      "stages": {
+        "seedling": "Keep the surface moist.",
+        "vegetative": "Regular light watering.",
+        "flowering": "Bolting — harvest promptly.",
+        "fruiting": "—",
+        "mature": "Keep moist between cuttings."
+      }
+    },
+    "fertilizer": {
+      "seedling": {"name": "Balanced fertilizer (e.g., 10-10-10)", "npk": [10, 10, 10], "application": "Incorporate before sowing.", "timing": "At sowing"},
+      "vegetative": {"name": "Nitrogen-rich feed (e.g., LAN or compost tea)", "npk": [28, 0, 0], "application": "Light side-dress.", "timing": "Every 3–4 weeks or after each cutting"},
+      "flowering": {"name": "None", "npk": [0, 0, 0], "application": "—", "timing": "—"},
+      "fruiting": {"name": "—", "npk": [0, 0, 0], "application": "—", "timing": "—"},
+      "mature": {"name": "Light nitrogen after cutting", "npk": [28, 0, 0], "application": "Side-dress.", "timing": "After each harvest"}
+    },
+    "harvest": "Pick outer leaves once 5–6 true leaves are present and leaves are 8–15 cm long. Harvest everything when plants start to bolt (send up a flower stalk).",
+    "days_to_harvest": [40, 60]
+  }
+}

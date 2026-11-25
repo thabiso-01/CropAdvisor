@@ -1,0 +1,114 @@
+[
+  {
+    "id": "yellow-leaves",
+    "title": "Why leaves turn yellow",
+    "crop": "general",
+    "category": "Diagnosis",
+    "tags": ["yellow", "yellowing", "chlorosis", "pale", "nitrogen", "deficiency", "overwatering", "leaves"],
+    "content": "Where the yellowing starts tells you the most.\n- **Older, lower leaves yellow first, evenly:** usually nitrogen deficiency. Side-dress with a nitrogen fertilizer or compost and water in.\n- **Yellow between veins on older leaves:** magnesium deficiency. Apply Epsom salt (magnesium sulfate) as a foliar spray (about 20 g per litre) or a magnesium-containing fertilizer.\n- **Yellow between veins on new leaves:** iron or manganese deficiency, often from high soil pH. Test pH; use chelated iron and acidify gradually if pH is above 7.5.\n- **Yellowing with wilting and wet soil:** overwatering or poor drainage starving roots of oxygen. Let soil dry slightly between waterings and improve drainage.\n- **Yellow leaves with brown spots or rings:** a disease such as early blight or septoria leaf spot (see leaf spot guide).\n- **One side of the plant yellowing and wilting:** possible fusarium or verticillium wilt — cut a stem; brown streaks inside confirm it.\nNatural ageing of a few bottom leaves on a healthy plant is normal."
+  },
+  {
+    "id": "leaf-spots",
+    "title": "Spots on leaves",
+    "crop": "general",
+    "category": "Disease",
+    "tags": ["spots", "spot", "lesions", "blight", "fungus", "fungal", "bacterial", "rings", "brown", "black"],
+    "content": "Most leaf spots are fungal or bacterial and spread in warm, wet conditions.\n- **Brown spots with concentric rings and a yellow halo, starting on lower leaves:** early blight (Alternaria).\n- **Small round spots with grey centres and dark edges:** septoria leaf spot.\n- **Large greasy, grey-green patches that spread fast, white growth underneath in humid weather:** late blight — act immediately.\n- **Small dark water-soaked spots, sometimes with yellow halos, on leaves and fruit:** bacterial spot.\n- **Orange-brown powdery pustules:** rust.\n**What to do:** remove and destroy (do not compost) badly affected leaves; water at the base in the morning; mulch to stop soil splashing onto leaves; space and prune for airflow; rotate crops for 2–3 years. For fungal diseases, protectant fungicides (e.g., copper, mancozeb or chlorothalonil products) slow the spread — use only products registered for your crop in your country, follow the label and observe the pre-harvest interval. Copper products also help suppress bacterial spot."
+  },
+  {
+    "id": "tomato-blight",
+    "title": "Tomato early and late blight",
+    "crop": "tomato",
+    "category": "Disease",
+    "tags": ["tomato", "blight", "early blight", "late blight", "alternaria", "phytophthora", "treat", "treatment"],
+    "content": "**Early blight** (Alternaria solani): dark brown spots with target-like rings on older leaves, which yellow and drop. Spreads slowly from the bottom up.\n**Late blight** (Phytophthora infestans): water-soaked grey-green lesions that turn brown, white fuzzy growth under leaves in humid weather, brown greasy patches on fruit. Can destroy a crop within days in cool, wet weather.\n**Treatment:** 1) Remove infected leaves and badly infected plants (bag them). 2) Stop overhead watering; water at the base early in the day. 3) Prune lower leaves to 30 cm above the soil and stake plants for airflow. 4) Apply a registered protectant fungicide (copper, mancozeb or chlorothalonil) every 7–10 days in wet weather, following the label. For late blight, systemic products may be needed — ask your local extension officer or agro-dealer.\n**Prevention:** resistant varieties, 3-year rotation away from tomato/potato/pepper/eggplant, mulch, and removing volunteer potato and tomato plants."
+  },
+  {
+    "id": "blossom-end-rot",
+    "title": "Blossom-end rot",
+    "crop": "tomato",
+    "category": "Disorder",
+    "tags": ["blossom end rot", "black bottom", "fruit rot", "calcium", "tomato", "pepper", "bottom"],
+    "content": "A sunken, leathery, dark patch at the bottom of tomato or pepper fruit. It is caused by calcium not reaching the developing fruit, usually because of uneven watering rather than a lack of calcium in the soil. Keep soil evenly moist (mulch helps), avoid excess nitrogen and ammonium fertilizers, and keep soil pH around 6.2–6.8 (lime if acidic). A calcium nitrate or calcium chloride spray can help new fruit; affected fruit will not recover — remove it."
+  },
+  {
+    "id": "watering-principles",
+    "title": "How often to water",
+    "crop": "general",
+    "category": "Watering",
+    "tags": ["water", "watering", "irrigation", "how often", "how much", "drought", "overwatering", "moisture"],
+    "content": "Water deeply and less often rather than a little every day — deep watering grows deep roots. Most vegetable crops need about 25–50 mm (1–2 in) of water per week from rain plus irrigation. **Finger test:** push a finger 5 cm into the soil; water if it is dry at that depth. Water in the early morning at the base of plants. Sandy soils need water more often in smaller amounts; clay soils less often. Mulch (5–8 cm of straw or grass) reduces evaporation by a large margin. Signs of underwatering: wilting in the morning, dry crispy leaf edges. Signs of overwatering: yellow lower leaves, wilting in wet soil, root rot, fungus gnats."
+  },
+  {
+    "id": "harvest-readiness",
+    "title": "Is my crop ready to harvest?",
+    "crop": "general",
+    "category": "Harvest",
+    "tags": ["harvest", "ready", "ripe", "ripeness", "pick", "maturity", "when", "sell", "market"],
+    "content": "Check days since planting against the variety's maturity days, then confirm with crop-specific signs:\n- **Tomato:** first blush of colour (breaker stage) onward; full colour, slight give when ripe. Pick at breaker for distant markets — fruit ripens in transit.\n- **Maize:** green mealies when silks are brown and kernels squirt milky juice; grain when the black layer forms.\n- **Pepper:** full size and firm; full colour for red/yellow types.\n- **Potato:** after vines die back and skins have set.\n- **Cabbage:** firm, solid heads.\n- **Beans:** pods snap cleanly, seeds still small.\nHarvest in the cool of the morning, handle gently, keep produce in the shade and grade by size and quality before selling — graded produce fetches better prices."
+  },
+  {
+    "id": "improve-yield",
+    "title": "Improving crop production",
+    "crop": "general",
+    "category": "Yield",
+    "tags": ["yield", "production", "improve", "increase", "productivity", "more", "better", "output", "profit"],
+    "content": "The biggest gains usually come from:\n1. **Soil testing** — fertilize to what the soil actually needs; correct pH with lime (most crops prefer pH 6.0–7.0).\n2. **Good seed** — certified, adapted, disease-resistant varieties.\n3. **Correct spacing and timely planting** — avoid overcrowding; plant at the start of reliable rains.\n4. **Organic matter** — compost and manure improve water-holding and nutrients.\n5. **Water management** — mulch, drip irrigation, and never stressing crops at flowering.\n6. **Timely weeding** — especially the first 4–6 weeks.\n7. **Integrated pest management** — scout weekly, act early, use chemicals only when needed.\n8. **Crop rotation and intercropping** — e.g., legumes before maize add nitrogen and break disease cycles.\n9. **Records** — track inputs, yields and prices to see what pays."
+  },
+  {
+    "id": "nutrient-deficiencies",
+    "title": "Nutrient deficiency signs",
+    "crop": "general",
+    "category": "Nutrition",
+    "tags": ["nutrient", "deficiency", "nitrogen", "phosphorus", "potassium", "magnesium", "fertilizer", "npk", "purple", "stunted"],
+    "content": "- **Nitrogen (N):** pale green to yellow older leaves, slow growth.\n- **Phosphorus (P):** dark green or purplish leaves (especially undersides), stunted plants, poor roots — common in cold soils.\n- **Potassium (K):** yellow then brown scorched edges on older leaves, weak stems, poor fruit quality.\n- **Magnesium (Mg):** yellow between veins of older leaves while veins stay green.\n- **Calcium (Ca):** blossom-end rot, tip burn on new leaves.\n- **Iron (Fe):** yellow between veins of the youngest leaves.\nNPK numbers on a bag (e.g., 10-10-10) are the percentages of N, P₂O₅ and K₂O. Use a soil test to choose the product and rate."
+  },
+  {
+    "id": "fall-armyworm",
+    "title": "Fall armyworm in maize",
+    "crop": "maize",
+    "category": "Pest",
+    "tags": ["armyworm", "fall armyworm", "maize", "corn", "caterpillar", "holes", "whorl", "pest", "frass"],
+    "content": "Ragged holes and 'window-pane' feeding on leaves, sawdust-like droppings (frass) in the whorl. Larvae have an inverted 'Y' on the head and four dots in a square near the tail. **Scout** 20 plants in several spots twice a week from emergence. **Act** when more than about 20% of young plants show fresh damage. Options: hand-pick larvae, apply sand/ash into the whorl on small plots, biopesticides (Bt, Metarhizium), or a registered insecticide targeted into the whorl early morning or evening. Encourage natural enemies; intercropping with legumes and push-pull systems reduce damage."
+  },
+  {
+    "id": "maize-diseases",
+    "title": "Common maize leaf diseases",
+    "crop": "maize",
+    "category": "Disease",
+    "tags": ["maize", "corn", "grey leaf spot", "gray leaf spot", "northern leaf blight", "rust", "streak", "msv"],
+    "content": "- **Grey leaf spot:** long, narrow, rectangular grey-tan lesions bounded by leaf veins.\n- **Northern corn leaf blight:** long cigar-shaped grey-green to tan lesions (2.5–15 cm).\n- **Common rust:** small cinnamon-brown pustules on both leaf surfaces.\n- **Maize streak virus:** fine broken yellow streaks along veins; spread by leafhoppers.\nManagement: resistant hybrids (the most effective step), rotation, burying or removing crop residue, balanced fertility, and registered fungicides at early disease for high-value crops. For streak virus, plant early and control grassy weeds that host leafhoppers."
+  },
+  {
+    "id": "cabbage-pests",
+    "title": "Cabbage pests and black rot",
+    "crop": "cabbage",
+    "category": "Pest",
+    "tags": ["cabbage", "diamondback", "moth", "aphids", "black rot", "holes", "brassica", "caterpillar"],
+    "content": "**Diamondback moth:** small green caterpillars that wriggle when touched, leaving holes and 'windows'. Use Bt sprays, rotate insecticide groups to avoid resistance. **Aphids:** grey waxy clusters — spray with soapy water or a registered aphicide; conserve ladybirds. **Black rot:** V-shaped yellow lesions from leaf edges with blackened veins — use clean seed, rotate 3 years away from brassicas, remove infected plants."
+  },
+  {
+    "id": "potato-care",
+    "title": "Potato hilling and blight",
+    "crop": "potato",
+    "category": "Care",
+    "tags": ["potato", "hilling", "green", "blight", "tuber", "scab"],
+    "content": "Hill soil up around stems when plants are 15–20 cm tall and again 2–3 weeks later; this protects tubers from light (green tubers are toxic) and from tuber moth. Potatoes share early and late blight with tomatoes — scout leaves after rainy spells and protect with registered fungicides when blight is forecast. Common scab (corky patches on skins) is worse in dry, alkaline soils; keep soil moist during tuber initiation."
+  },
+  {
+    "id": "ipm-basics",
+    "title": "Safe pest and disease control (IPM)",
+    "crop": "general",
+    "category": "Pest",
+    "tags": ["pest", "insects", "spray", "pesticide", "organic", "ipm", "chemical", "safe", "neem"],
+    "content": "Integrated Pest Management means: prevent first (healthy soil, resistant varieties, rotation, clean seed), scout weekly, identify correctly, and act only when damage justifies it. Start with physical and biological options (hand-picking, traps, neem-based or Bt products), then registered chemicals. When spraying: wear gloves, mask and long sleeves; never exceed the label rate; respect the pre-harvest interval; never spray during flowering when bees are active; store chemicals locked away from children and food."
+  },
+  {
+    "id": "soil-health",
+    "title": "Soil health and pH",
+    "crop": "general",
+    "category": "Soil",
+    "tags": ["soil", "ph", "lime", "compost", "manure", "organic matter", "acid", "test"],
+    "content": "Most vegetables and grains do best at pH 6.0–7.0. Acidic soils (below 5.5) lock up phosphorus and can cause aluminium toxicity — apply agricultural or dolomitic lime according to a soil test, ideally 2–3 months before planting. Add 2–5 kg of compost or well-rotted manure per square metre each season. Avoid working wet soil, keep the soil covered with mulch or cover crops, and rotate crop families."
+  }
+]

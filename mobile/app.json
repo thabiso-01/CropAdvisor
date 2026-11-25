@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Crop Advisor AI",
+    "slug": "crop-advisor-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cropadvisor.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E8F5E9",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.cropadvisor.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Crop Advisor needs your photos so you can analyse existing plant pictures.",
+          "cameraPermission": "Crop Advisor uses the camera to photograph your plants for analysis."
+        }
+      ]
+    ],
+    "scheme": "cropadvisor"
+  }
+}

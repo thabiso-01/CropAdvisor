@@ -1,0 +1,75 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start everything with Docker (website + API + AI + database)",
+      "type": "shell",
+      "command": "docker compose up -d --build && echo Open http://localhost:8080 && docker compose logs -f api",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Stop Docker",
+      "type": "shell",
+      "command": "docker compose down",
+      "problemMatcher": []
+    },
+    {
+      "label": "AI: download models into Ollama (llama3.2 + qwen3-vl:4b)",
+      "type": "shell",
+      "command": "ollama pull llama3.2 && ollama pull qwen3-vl:4b",
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: install Python deps (no Docker)",
+      "type": "shell",
+      "command": "pip install -r requirements.txt pytest",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: run tests",
+      "type": "shell",
+      "command": "python -m pytest -q",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Website: npm install",
+      "type": "shell",
+      "command": "npm install",
+      "options": { "cwd": "${workspaceFolder}/web" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Website: start dev server (http://localhost:5173)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/web" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Website: build",
+      "type": "shell",
+      "command": "npm run build",
+      "options": { "cwd": "${workspaceFolder}/web" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Mobile app: npm install",
+      "type": "shell",
+      "command": "npm install",
+      "options": { "cwd": "${workspaceFolder}/mobile" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Mobile app: start Expo",
+      "type": "shell",
+      "command": "npx expo start",
+      "options": { "cwd": "${workspaceFolder}/mobile" },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}
