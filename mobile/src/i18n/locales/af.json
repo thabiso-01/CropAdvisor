@@ -255,5 +255,15 @@
   "auth.privacy": "Jou skanderings is privaat tot jou rekening.",
   "auth.signOut": "Meld af",
   "auth.signOutConfirm": "Meld af van Crop Advisor AI?",
-  "auth.signedInAs": "Aangemeld as {name}"
+  "auth.signedInAs": "Aangemeld as {name}",
+  "camera.title": "Neem 'n foto",
+  "camera.capture": "Neem foto",
+  "camera.switch": "Wissel kamera",
+  "camera.starting": "Kamera begin…",
+  "camera.denied": "Die kamera is geblokkeer. Klik op die kamera-ikoon in die adresbalk, kies Laat toe en probeer weer. (VS Code se ingeboude blaaier kan nie die kamera gebruik nie: maak die werf in Chrome of Edge oop.)",
+  "camera.none": "Geen kamera is op hierdie toestel gevind nie.",
+  "camera.busy": "Die kamera word deur 'n ander toep gebruik. Maak dit toe en probeer weer.",
+  "camera.failed": "Die kamera kon nie begin nie.",
+  "camera.useFile": "Kies eerder 'n foto",
+  "camera.insecure": "Die kamera werk net as die werf by http://localhost:8080 of oor https oopgemaak word. Maak dit so oop, of kies eerder 'n foto."
 }

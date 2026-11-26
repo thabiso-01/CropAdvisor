@@ -254,5 +254,15 @@
   "auth.privacy": "Iiskeno zakho ziyimfihlo kwiakhawunti yakho.",
   "auth.signOut": "Phuma",
   "auth.signOutConfirm": "Phuma kwi-Crop Advisor AI?",
-  "auth.signedInAs": "Ungene njengo-{name}"
+  "auth.signedInAs": "Ungene njengo-{name}",
+  "camera.title": "Thatha umfanekiso",
+  "camera.capture": "Thatha umfanekiso",
+  "camera.switch": "Tshintsha ikhamera",
+  "camera.starting": "Ivula ikhamera…",
+  "camera.denied": "Ikhamera ivaliwe. Cofa umfanekiso wekhamera kwibha yedilesi, ukhethe Vumela, uze uzame kwakhona. (Ibhrawuza eyakhelwe ngaphakathi ye-VS Code ayinakusebenzisa ikhamera: vula isayithi kwi-Chrome okanye kwi-Edge.)",
+  "camera.none": "Akukho khamera ifunyenweyo kwesi sixhobo.",
+  "camera.busy": "Ikhamera isetyenziswa enye inkqubo. Yivale uze uzame kwakhona.",
+  "camera.failed": "Ikhamera ayikwazanga ukuqala.",
+  "camera.useFile": "Khetha umfanekiso endaweni yoko",
+  "camera.insecure": "Ikhamera isebenza kuphela xa isayithi ivulwe kwi-http://localhost:8080 okanye nge-https. Yivule ngolo hlobo, okanye ukhethe umfanekiso endaweni yoko."
 }

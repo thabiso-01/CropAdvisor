@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 
 import { api } from '../api.js'
+import { CameraModal, canUseLiveCamera } from '../Camera.jsx'
 import field from '../assets/field.jpg'
 import { errorText } from '../i18n/index.js'
 import { useStore } from '../store.jsx'
@@ -29,6 +30,7 @@ export default function Home() {
   const [err, setErr] = useState('')
   const [drag, setDrag] = useState(false)
   const [recent, setRecent] = useState([])
+  const [camOpen, setCamOpen] = useState(false)
   const cam = useRef()
   const up = useRef()
 
@@ -87,7 +89,7 @@ export default function Home() {
                 <h2>{t('home.scanTitle')}</h2>
                 <p>{t('home.scanText')}</p>
                 <div className="btn-row">
-                  <button type="button" className="btn light" onClick={() => cam.current.click()}><Camera size={17} /> {t('home.takePhoto')}</button>
+                  <button type="button" className="btn light" onClick={() => (canUseLiveCamera() ? setCamOpen(true) : cam.current.click())}><Camera size={17} /> {t('home.takePhoto')}</button>
                   <button type="button" className="btn glass" onClick={() => up.current.click()}><Upload size={17} /> {t('home.upload')}</button>
                 </div>
               </div>
@@ -136,6 +138,8 @@ export default function Home() {
           </Card>
         </div>
       </div>
+
+      <CameraModal open={camOpen} onClose={() => setCamOpen(false)} onCapture={choose} onUseFile={() => up.current.click()} />
 
       {busy && (
         <div className="busy" role="status">

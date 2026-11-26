@@ -254,5 +254,15 @@
   "auth.privacy": "Diskena tša gago ke sephiri sa akhaonte ya gago.",
   "auth.signOut": "Tšwa",
   "auth.signOutConfirm": "Tšwa go Crop Advisor AI?",
-  "auth.signedInAs": "O tsene bjalo ka {name}"
+  "auth.signedInAs": "O tsene bjalo ka {name}",
+  "camera.title": "Tšea seswantšho",
+  "camera.capture": "Tšea seswantšho",
+  "camera.switch": "Fetola khamera",
+  "camera.starting": "E thoma khamera…",
+  "camera.denied": "Khamera e thibetšwe. Kgotla leswao la khamera bareng ya aterese, o kgethe Dumelela, gomme o leke gape. (Sebadi sa ka gare sa VS Code ga se kgone go diriša khamera: bula saete ka Chrome goba Edge.)",
+  "camera.none": "Ga go khamera yeo e hweditšwego sedirišwong se.",
+  "camera.busy": "Khamera e dirišwa ke tirišo ye nngwe. E tswalele gomme o leke gape.",
+  "camera.failed": "Khamera ga se ya kgona go thoma.",
+  "camera.useFile": "Kgetha seswantšho go e na le moo",
+  "camera.insecure": "Khamera e šoma fela ge saete e bulwa go http://localhost:8080 goba ka https. E bule ka tsela yeo, goba o kgethe seswantšho go e na le moo."
 }

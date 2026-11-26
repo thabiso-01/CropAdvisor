@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 
 import { api, fileToDataUrl } from '../api.js'
+import { CameraModal, canUseLiveCamera } from '../Camera.jsx'
 import { errorText } from '../i18n/index.js'
 import { useStore } from '../store.jsx'
 import { fmtTime, LanguagePicker, Markdown, Modal } from '../ui.jsx'
@@ -20,6 +21,7 @@ export default function Assistant() {
   const [scans, setScans] = useState([])
   const [guides, setGuides] = useState([])
   const [sheet, setSheet] = useState(null)
+  const [camOpen, setCamOpen] = useState(false)
   const end = useRef()
   const fileIn = useRef()
   const camIn = useRef()
@@ -107,7 +109,7 @@ export default function Assistant() {
         <div className="chat-chips">
           <button type="button" onClick={() => setSheet('tools')}><Wrench size={15} /> {t('chat.tools')}</button>
           <button type="button" onClick={() => setSheet('guides')}><BookOpen size={15} /> {t('chat.guides')}</button>
-          <button type="button" onClick={() => camIn.current.click()}><Camera size={15} /> {t('chat.scan')}</button>
+          <button type="button" onClick={() => (canUseLiveCamera() ? setCamOpen(true) : camIn.current.click())}><Camera size={15} /> {t('chat.scan')}</button>
         </div>
 
         {scan && (
@@ -161,6 +163,8 @@ export default function Assistant() {
       </div>
 
       <aside className="chat-side">{contextPanel}</aside>
+
+      <CameraModal open={camOpen} onClose={() => setCamOpen(false)} onCapture={attach} onUseFile={() => fileIn.current.click()} />
 
       <Modal open={sheet === 'tools'} onClose={() => setSheet(null)} title={t('chat.tools')}>
         <Link to="/" className="q-row"><Camera size={16} /> {t('chat.newAnalysis')}</Link>

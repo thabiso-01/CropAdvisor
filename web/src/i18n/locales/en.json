@@ -255,5 +255,15 @@
   "auth.privacy": "Your scans are private to your account.",
   "auth.signOut": "Sign out",
   "auth.signOutConfirm": "Sign out of Crop Advisor AI?",
-  "auth.signedInAs": "Signed in as {name}"
+  "auth.signedInAs": "Signed in as {name}",
+  "camera.title": "Take a photo",
+  "camera.capture": "Take photo",
+  "camera.switch": "Switch camera",
+  "camera.starting": "Starting the camera…",
+  "camera.denied": "The camera was blocked. Click the camera icon in the address bar and choose Allow, then try again. (VS Code's built-in browser can't use the camera: open the site in Chrome or Edge.)",
+  "camera.none": "No camera was found on this device.",
+  "camera.busy": "The camera is being used by another app. Close it and try again.",
+  "camera.failed": "The camera could not start.",
+  "camera.useFile": "Choose a photo instead",
+  "camera.insecure": "The camera only works when the site is opened at http://localhost:8080 or over https. Open it that way, or choose a photo instead."
 }
