@@ -3,24 +3,32 @@ import { Fragment, useEffect } from 'react'
 import { Link } from 'react-router'
 
 import { imageUrl } from './api.js'
-import { LANGUAGES, useStore } from './store.jsx'
+import { LANGUAGES, useStore, useT } from './store.jsx'
 
+// Labels are translation keys: show them with t(STATUS[x].label).
 export const STATUS = {
-  healthy: { label: 'Healthy', cls: 'good', Icon: CheckCircle2 },
-  mild: { label: 'Mild issue', cls: 'warn', Icon: AlertCircle },
-  moderate: { label: 'Moderate', cls: 'serious', Icon: AlertTriangle },
-  severe: { label: 'Severe', cls: 'critical', Icon: AlertOctagon },
+  healthy: { label: 'status.healthy', cls: 'good', Icon: CheckCircle2 },
+  mild: { label: 'status.mild', cls: 'warn', Icon: AlertCircle },
+  moderate: { label: 'status.moderate', cls: 'serious', Icon: AlertTriangle },
+  severe: { label: 'status.severe', cls: 'critical', Icon: AlertOctagon },
 }
 
+// [crop id, translation key]
 export const CROPS = [
-  ['', 'Auto-detect'], ['tomato', 'Tomato'], ['maize', 'Maize'], ['potato', 'Potato'], ['pepper', 'Pepper'],
-  ['beans', 'Beans'], ['cabbage', 'Cabbage'], ['wheat', 'Wheat'], ['spinach', 'Spinach'],
+  ['', 'crop.auto'], ['tomato', 'crop.tomato'], ['maize', 'crop.maize'], ['potato', 'crop.potato'], ['pepper', 'crop.pepper'],
+  ['beans', 'crop.beans'], ['cabbage', 'crop.cabbage'], ['wheat', 'crop.wheat'], ['spinach', 'crop.spinach'],
 ]
+
+/** A growth stage from the server (seedling, vegetative, …) in the chosen language. */
+export const stageName = (t, stage) => (stage ? translate(t, `stage.${stage}`, cap(stage)) : '')
+const translate = (t, key, fallback) => { const v = t(key); return v === key ? fallback : v }
 
 export const scoreClass = (n) => (n >= 80 ? 'good' : n >= 60 ? 'warn' : n >= 40 ? 'serious' : 'critical')
 export const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : '')
-export const fmtDate = (iso) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-export const fmtTime = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+// Dates follow the chosen language where the browser knows it (store.jsx sets <html lang>).
+const locale = () => document.documentElement.lang || undefined
+export const fmtDate = (iso) => new Date(iso).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' })
+export const fmtTime = (ms) => new Date(ms).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' })
 
 export function PageHead({ title, sub, children }) {
   return (
@@ -38,11 +46,11 @@ export function PageHead({ title, sub, children }) {
 }
 
 export function LanguagePicker() {
-  const { lang, setLang } = useStore()
+  const { lang, setLang, t } = useStore()
   return (
-    <label className="lang" title="Language for AI answers">
+    <label className="lang" title={t('common.language')}>
       <Languages size={18} />
-      <select value={lang} onChange={(e) => setLang(e.target.value)} aria-label="Advice language">
+      <select value={lang} onChange={(e) => setLang(e.target.value)} aria-label={t('common.language')}>
         {LANGUAGES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
       </select>
     </label>
@@ -57,8 +65,9 @@ export const Card = ({ title, right, children, className = '' }) => (
 )
 
 export function StatusBadge({ status }) {
+  const t = useT()
   const m = STATUS[status] ?? STATUS.mild
-  return <span className={`badge ${m.cls}`}><m.Icon size={13} />{m.label}</span>
+  return <span className={`badge ${m.cls}`}><m.Icon size={13} />{t(m.label)}</span>
 }
 
 export const Meter = ({ value, cls = '' }) => (
@@ -68,9 +77,10 @@ export const Meter = ({ value, cls = '' }) => (
 )
 
 export function ScoreRing({ score, size = 84 }) {
+  const t = useT()
   const cls = scoreClass(score)
   return (
-    <div className={`ring ${cls}`} style={{ '--p': score, width: size, height: size }} aria-label={`Health ${score} of 100`}>
+    <div className={`ring ${cls}`} style={{ '--p': score, width: size, height: size }} aria-label={t('common.healthOf', { score })}>
       <span><b>{score}</b><small>/100</small></span>
     </div>
   )
@@ -87,6 +97,7 @@ export function Steps({ items }) {
 }
 
 export function ScanCard({ item, onFav }) {
+  const t = useT()
   return (
     <Link to={`/analysis/${item.id}`} className="scan-card">
       <img src={imageUrl(item.image_url)} alt="" loading="lazy" />
@@ -95,14 +106,14 @@ export function ScanCard({ item, onFav }) {
           <strong>{item.crop}</strong>
           <b className={`score ${scoreClass(item.health_score)}`}>{item.health_score}<small>/100</small></b>
         </div>
-        <p className="muted clamp">{item.top_issue?.split(' (')[0] || 'No problems detected'}</p>
+        <p className="muted clamp">{item.top_issue?.split(' (')[0] || t('common.noProblems')}</p>
         <div className="between">
           <StatusBadge status={item.health_status} />
           <small className="muted">{fmtDate(item.created_at)}</small>
         </div>
       </div>
       {onFav && (
-        <button type="button" className={`star ${item.favorite ? 'on' : ''}`} aria-label={item.favorite ? 'Remove favourite' : 'Add favourite'}
+        <button type="button" className={`star ${item.favorite ? 'on' : ''}`} aria-label={item.favorite ? t('common.removeFavourite') : t('common.addFavourite')}
           onClick={(e) => { e.preventDefault(); onFav(item) }}>
           <Star size={18} fill={item.favorite ? 'currentColor' : 'none'} />
         </button>
@@ -120,16 +131,20 @@ export const Empty = ({ icon: Icon, title, text, children }) => (
   </div>
 )
 
-export const ErrorBox = ({ message, onRetry }) => (
-  <div className="error" role="alert">
-    <AlertTriangle size={18} /><span>{message}</span>
-    {onRetry && <button type="button" onClick={onRetry}>Retry</button>}
-  </div>
-)
+export function ErrorBox({ message, onRetry }) {
+  const t = useT()
+  return (
+    <div className="error" role="alert">
+      <AlertTriangle size={18} /><span>{message}</span>
+      {onRetry && <button type="button" onClick={onRetry}>{t('common.retry')}</button>}
+    </div>
+  )
+}
 
 export const Spinner = ({ label }) => <div className="spinner-wrap"><div className="spin" />{label && <p>{label}</p>}</div>
 
 export function Modal({ open, onClose, title, children }) {
+  const t = useT()
   useEffect(() => {
     if (!open) return
     const k = (e) => e.key === 'Escape' && onClose()
@@ -140,7 +155,7 @@ export function Modal({ open, onClose, title, children }) {
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
-        <div className="card-head"><h2>{title}</h2><button type="button" className="icon-btn" onClick={onClose} aria-label="Close"><X size={18} /></button></div>
+        <div className="card-head"><h2>{title}</h2><button type="button" className="icon-btn" onClick={onClose} aria-label={t('common.close')}><X size={18} /></button></div>
         <div className="modal-body">{children}</div>
       </div>
     </div>

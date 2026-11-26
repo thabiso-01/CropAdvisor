@@ -4,20 +4,21 @@ import { Link, useNavigate } from 'react-router'
 
 import { api } from '../api.js'
 import field from '../assets/field.jpg'
+import { errorText } from '../i18n/index.js'
 import { useStore } from '../store.jsx'
 import { Card, CROPS, ErrorBox, PageHead, ScanCard } from '../ui.jsx'
 
-const STEPS = ['Checking leaf colour…', 'Looking for disease and pest signs…', 'Estimating growth and harvest readiness…', 'Writing treatment and fertilizer advice…']
+const STEPS = ['home.step1', 'home.step2', 'home.step3', 'home.step4']
 
 const TOOLS = [
-  { to: '/fertilizer', label: 'Fertilizer Advisor', Icon: FlaskConical },
-  { to: '/assistant', label: 'AI Assistant', Icon: Bot },
-  { to: '/guides', label: 'Crop Guides', Icon: BookOpen },
-  { to: '/analytics', label: 'Farm Analytics', Icon: LineChart },
+  { to: '/fertilizer', label: 'nav.fertilizer', Icon: FlaskConical },
+  { to: '/assistant', label: 'nav.assistant', Icon: Bot },
+  { to: '/guides', label: 'nav.guides', Icon: BookOpen },
+  { to: '/analytics', label: 'nav.farmAnalytics', Icon: LineChart },
 ]
 
 export default function Home() {
-  const { lang, version, bump, health } = useStore()
+  const { lang, version, bump, t } = useStore()
   const nav = useNavigate()
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
@@ -42,7 +43,7 @@ export default function Home() {
 
   const choose = (f) => {
     if (!f) return
-    if (!f.type.startsWith('image/')) return setErr('Please choose a photo (JPEG, PNG or WebP).')
+    if (!f.type.startsWith('image/')) return setErr(t('error.photoType'))
     setErr('')
     setFile(f)
     setPreview(URL.createObjectURL(f))
@@ -60,16 +61,15 @@ export default function Home() {
       setNotes('')
       nav(`/analysis/${a.id}`)
     } catch (e) {
-      setErr(e.message)
+      setErr(errorText(t, e))
     } finally {
       setBusy(false)
     }
   }
 
-  const localModel = health?.provider?.startsWith('ollama:')
   return (
     <>
-      <PageHead title="Crop Advisor AI" sub="Digital Kisan Advisor" />
+      <PageHead title={t('app.name')} />
       <div className="grid-2">
         <div className="stack">
           <section
@@ -78,17 +78,17 @@ export default function Home() {
             onDragLeave={() => setDrag(false)}
             onDrop={(e) => { e.preventDefault(); setDrag(false); choose(e.dataTransfer.files?.[0]) }}
           >
-            <img src={preview || field} alt={preview ? 'Selected plant photo' : ''} />
+            <img src={preview || field} alt={preview ? t('home.selectedPhoto') : ''} />
             {preview ? (
-              <button type="button" className="photo-x" onClick={() => { setFile(null); setPreview(null) }} aria-label="Remove photo"><X size={18} /></button>
+              <button type="button" className="photo-x" onClick={() => { setFile(null); setPreview(null) }} aria-label={t('common.removePhoto')}><X size={18} /></button>
             ) : (
               <div className="drop-inner">
                 <span className="drop-icon"><Sprout size={28} /></span>
-                <h2>Scan your plant</h2>
-                <p>Take a photo or drop one here. AI checks its health, problems, growth stage, fertilizer needs and harvest readiness.</p>
+                <h2>{t('home.scanTitle')}</h2>
+                <p>{t('home.scanText')}</p>
                 <div className="btn-row">
-                  <button type="button" className="btn light" onClick={() => cam.current.click()}><Camera size={17} /> Take photo</button>
-                  <button type="button" className="btn glass" onClick={() => up.current.click()}><Upload size={17} /> Upload</button>
+                  <button type="button" className="btn light" onClick={() => cam.current.click()}><Camera size={17} /> {t('home.takePhoto')}</button>
+                  <button type="button" className="btn glass" onClick={() => up.current.click()}><Upload size={17} /> {t('home.upload')}</button>
                 </div>
               </div>
             )}
@@ -98,40 +98,40 @@ export default function Home() {
 
           {err && <ErrorBox message={err} />}
 
-          <Card title="Which crop is this?">
+          <Card title={t('home.whichCrop')}>
             <div className="chips">
               {CROPS.map(([id, name]) => (
-                <button type="button" key={id || 'auto'} className={`chip ${crop === id ? 'on' : ''}`} onClick={() => setCrop(id)}>{name}</button>
+                <button type="button" key={id || 'auto'} className={`chip ${crop === id ? 'on' : ''}`} onClick={() => setCrop(id)}>{t(name)}</button>
               ))}
             </div>
             <label className="field">
-              <span>What are you seeing? <small className="muted">(optional, helps the AI)</small></span>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="e.g. Yellow leaves with brown rings on the lower branches after a week of rain" />
+              <span>{t('home.whatSeeing')} <small className="muted">{t('home.optional')}</small></span>
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder={t('home.notesPlaceholder')} />
             </label>
             <div className="btn-row">
-              <button type="button" className="btn" disabled={!file || busy} onClick={analyze}><Sprout size={17} /> Analyze Plant</button>
-              {file && <button type="button" className="btn ghost" onClick={() => up.current.click()}><ImagePlus size={17} /> Change photo</button>}
+              <button type="button" className="btn" disabled={!file || busy} onClick={analyze}><Sprout size={17} /> {t('home.analyze')}</button>
+              {file && <button type="button" className="btn ghost" onClick={() => up.current.click()}><ImagePlus size={17} /> {t('home.changePhoto')}</button>}
             </div>
-            {!file && <p className="muted small">Choose a photo above to start.</p>}
+            {!file && <p className="muted small">{t('home.chooseFirst')}</p>}
           </Card>
         </div>
 
         <div className="stack">
           <div className="tools">
             {TOOLS.map(({ to, label, Icon }) => (
-              <Link key={to} to={to} className="tool"><span className="icon-bubble"><Icon size={20} /></span>{label}</Link>
+              <Link key={to} to={to} className="tool"><span className="icon-bubble"><Icon size={20} /></span>{t(label)}</Link>
             ))}
           </div>
-          <Card title="Recent scans" right={recent.length > 0 && <Link to="/history" className="link">See all</Link>}>
+          <Card title={t('home.recent')} right={recent.length > 0 && <Link to="/history" className="link">{t('home.seeAll')}</Link>}>
             {recent.length ? (
               <div className="scan-list">{recent.map((r) => <ScanCard key={r.id} item={r} />)}</div>
             ) : (
-              <p className="muted">Your plant analyses will appear here.</p>
+              <p className="muted">{t('home.recentEmpty')}</p>
             )}
           </Card>
           <Card>
             <div className="tip"><span className="icon-bubble"><Lightbulb size={18} /></span>
-              <p className="muted">Photo tip: shoot in daylight, fill the frame with the affected leaves or fruit, and add a short description of what you see.</p>
+              <p className="muted">{t('home.photoTip')}</p>
             </div>
           </Card>
         </div>
@@ -141,9 +141,8 @@ export default function Home() {
         <div className="busy" role="status">
           <div className="busy-card">
             <div className="spin" />
-            <h3>Analysing your plant</h3>
-            <p>{STEPS[Math.min(STEPS.length - 1, Math.floor(elapsed / 4))]}</p>
-            {localModel && <small className="muted">The open-source model runs on your own server, so the first analysis can take a minute or two.</small>}
+            <h3>{t('home.busyTitle')}</h3>
+            <p>{t(STEPS[Math.min(STEPS.length - 1, Math.floor(elapsed / 4))])}</p>
             <small className="muted">{elapsed}s</small>
           </div>
         </div>

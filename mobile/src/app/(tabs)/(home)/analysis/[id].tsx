@@ -32,7 +32,7 @@ export default function AnalysisScreen() {
     load();
   }, [load]);
 
-  if (err) return <SafeAreaView style={{ flex: 1 }}><ScreenHeader title="Crop Advisor AI" subtitle="Digital Kisan Advisor" /><ErrorBanner message={err} onRetry={load} /></SafeAreaView>;
+  if (err) return <SafeAreaView style={{ flex: 1 }}><ScreenHeader title="Crop Advisor AI" /><ErrorBanner message={err} onRetry={load} /></SafeAreaView>;
   if (!a) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator color={colors.primary} size="large" /></View>;
 
   const r = a.result;
@@ -62,7 +62,7 @@ export default function AnalysisScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
-        <ScreenHeader title="Crop Advisor AI" subtitle="Digital Kisan Advisor" />
+        <ScreenHeader title="Crop Advisor AI" />
         <View style={{ paddingHorizontal: 18, gap: 16 }}>
           <View style={st.imgWrap}>
             <Image source={{ uri: imageUrl(a.image_url) }} style={st.img} contentFit="cover" transition={200} />
@@ -88,6 +88,16 @@ export default function AnalysisScreen() {
                 <Progress value={r.health_score} color={scoreColor(r.health_score)} />
                 <Text style={[s.body, { marginTop: 12 }]}>{r.summary}</Text>
               </Card>
+
+              {r.expert_check?.recommended && (
+                <View style={st.expert} accessibilityRole="alert">
+                  <Text style={st.expertTitle}>Confirm with an expert before you spray or buy anything</Text>
+                  {r.expert_check.reasons.map((x) => (
+                    <Text key={x} style={st.expertText}>{`• ${x}`}</Text>
+                  ))}
+                  <Text style={[st.expertText, { marginTop: 6 }]}>Show this report to your local extension officer or an agronomist. Use Share to send it.</Text>
+                </View>
+              )}
 
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <Stat icon="sprout-outline" label="Growth stage" value={cap(r.growth_stage)} />
@@ -215,7 +225,7 @@ export default function AnalysisScreen() {
                 <Info k="Date" v={fmtDate(a.created_at)} />
                 <Info k="Crop" v={`${r.crop}${r.crop_confidence ? ` (${Math.round(r.crop_confidence * 100)}% sure)` : ''}`} />
                 {a.notes ? <Info k="Your notes" v={a.notes} /> : null}
-                <Info k="Analysed by" v={a.provider.startsWith('claude') ? 'Claude AI vision' : 'Offline knowledge base'} />
+                <Info k="Analysed by" v={a.provider.startsWith('gemini:') ? `Google ${a.provider.slice(7)}` : a.provider.startsWith('claude') ? 'Claude AI vision' : 'Offline knowledge base'} />
               </Card>
             </>
           )}
@@ -266,6 +276,9 @@ const Info = ({ k, v }: { k: string; v: string }) => (
 );
 
 const st = StyleSheet.create({
+  expert: { backgroundColor: '#FFF8E1', borderColor: '#F5D77A', borderWidth: 1, borderRadius: radius.md, padding: 14, gap: 2 },
+  expertTitle: { color: '#5D4300', fontWeight: '700', marginBottom: 4 },
+  expertText: { color: '#6D5000', lineHeight: 20 },
   imgWrap: { borderRadius: radius.md, overflow: 'hidden', ...shadow },
   img: { width: '100%', height: 200, backgroundColor: colors.inset },
   imgTag: { position: 'absolute', left: 12, bottom: 12, flexDirection: 'row', gap: 6, alignItems: 'center', backgroundColor: 'rgba(46,125,50,0.85)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },

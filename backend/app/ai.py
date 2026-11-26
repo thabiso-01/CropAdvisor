@@ -1,9 +1,9 @@
 """AI providers for Crop Advisor.
 
-Default: **Ollama** running the open-source **Qwen3-VL** vision-language model (Apache-2.0) —
-self-hosted, no API key, no per-request cost. Optional: Anthropic Claude (AI_PROVIDER=anthropic).
-Always available: an offline knowledge-base fallback, so the app keeps working if the model is
-still downloading or the AI server is down.
+Default: **Gemini Flash** (hosted by Google, needs GEMINI_API_KEY), retried and then handed to the
+GEMINI_FALLBACK_MODELS when the main model is busy. Photos are checked for a plant before analysis.
+Optional: Anthropic Claude (AI_PROVIDER=anthropic).
+Always available: an offline knowledge-base fallback, so the app keeps working if the AI is down.
 """
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ import base64
 import io
 import json
 import logging
-import threading
 import time
 
 import httpx
@@ -22,9 +21,19 @@ from .config import settings
 
 log = logging.getLogger("crop-advisor.ai")
 
+# South Africa's 11 official spoken languages. The names tell the AI exactly which language to write.
 LANGUAGES = {
-    "en": "English", "af": "Afrikaans", "zu": "isiZulu", "xh": "isiXhosa", "st": "Sesotho",
-    "sw": "Swahili", "hi": "Hindi", "fr": "French", "pt": "Portuguese", "es": "Spanish",
+    "en": "English",
+    "af": "Afrikaans",
+    "zu": "isiZulu (Zulu)",
+    "xh": "isiXhosa (Xhosa)",
+    "nr": "isiNdebele (South African Ndebele)",
+    "nso": "Sepedi (Sesotho sa Leboa, Northern Sotho)",
+    "st": "Sesotho (Southern Sotho)",
+    "tn": "Setswana (Tswana)",
+    "ss": "siSwati (Swati)",
+    "ve": "Tshivenda (Venda)",
+    "ts": "Xitsonga (Tsonga)",
 }
 
 ANALYSIS_TOOL = {
@@ -101,12 +110,6 @@ SAFETY = (
 # ---------------------------------------------------------------- provider plumbing
 
 STAGES = ["seedling", "vegetative", "flowering", "fruiting", "mature"]
-# chat = Llama 3.2 (text), vision = photo model (e.g. qwen3-vl:4b)
-model_status = {
-    "chat": {"state": "unknown", "detail": ""},
-    "vision": {"state": "unknown", "detail": ""},
-}
-_status_lock = threading.Lock()
 
 
 def active_provider() -> str:
@@ -115,22 +118,14 @@ def active_provider() -> str:
         return "gemini"
     if p == "anthropic" and settings.anthropic_api_key:
         return "anthropic"
-    if p == "ollama":
-        return "ollama"
     return "offline"
 
 
 def provider_name() -> str:
     return {
         "gemini": f"gemini:{settings.gemini_model}",
-        "ollama": f"ollama:{settings.ollama_model}",
         "anthropic": f"claude:{settings.anthropic_model}",
     }.get(active_provider(), "offline-knowledge-base")
-
-
-def _http(timeout: float | None = None) -> httpx.Client:
-    """Factory (patched in tests)."""
-    return httpx.Client(base_url=settings.ollama_url, timeout=timeout or settings.ollama_timeout)
 
 
 def _gemini_http() -> httpx.Client:
@@ -165,14 +160,18 @@ def _gemini_models() -> list[str]:
     return list(dict.fromkeys(m for m in models if m))
 
 
-def _gemini_post(body: dict) -> dict:
+def _gemini_post(body: dict, models: list[str] | None = None) -> tuple[dict, str]:
+    """POST to the first Gemini model that answers. Returns (response JSON, model that answered)."""
     last_error: Exception | None = None
+    models = models or _gemini_models()
     with _gemini_http() as client:
-        for model in _gemini_models():
+        for n, model in enumerate(models):
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            # Shorter wait on every model but the last, so a stalled model hands over quickly.
+            timeout = settings.gemini_timeout if n == len(models) - 1 else min(settings.gemini_first_timeout, settings.gemini_timeout)
             for attempt in range(2):
                 try:
-                    response = client.post(url, json=body)
+                    response = client.post(url, json=body, timeout=timeout)
                 except httpx.TimeoutException as exc:
                     # A timed-out model is unlikely to answer a retry quickly; try the next one.
                     log.warning("Gemini model %s timed out", model)
@@ -198,9 +197,9 @@ def _gemini_post(body: dict) -> dict:
                     )
                     break
                 response.raise_for_status()
-                if model != settings.gemini_model:
+                if model != models[0]:
                     log.info("Gemini answered with fallback model %s", model)
-                return response.json()
+                return response.json(), model
     raise RuntimeError(f"All Gemini models failed: {last_error}")
 
 
@@ -210,7 +209,9 @@ def _gemini_generate(
     response_schema: dict | None = None,
     temperature: float = 0.3,
     max_output_tokens: int = 512,
-) -> str:
+    models: list[str] | None = None,
+) -> tuple[str, str]:
+    """Returns (text, model that answered)."""
     generation_config = {"temperature": temperature, "maxOutputTokens": max_output_tokens}
     if response_schema:
         generation_config.update({
@@ -222,7 +223,7 @@ def _gemini_generate(
         "contents": contents,
         "generationConfig": generation_config,
     }
-    data = _gemini_post(body)
+    data, model = _gemini_post(body, models)
     candidates = data.get("candidates") or []
     if not candidates:
         reason = (data.get("promptFeedback") or {}).get("blockReason") or "no candidate returned"
@@ -233,7 +234,7 @@ def _gemini_generate(
     text = "".join(part.get("text", "") for part in parts)
     if not text:
         raise RuntimeError("Gemini returned an empty response")
-    return text
+    return text, model
 
 
 def _gemini_chat_contents(messages: list[dict], image_jpeg: bytes | None = None) -> list[dict]:
@@ -248,121 +249,23 @@ def _gemini_chat_contents(messages: list[dict], image_jpeg: bytes | None = None)
     return contents
 
 
-def _set_status(kind: str, state: str, detail: str = "") -> None:
-    with _status_lock:
-        model_status[kind] = {"state": state, "detail": detail}
-
-
-def _ready(kind: str) -> bool:
-    return model_status[kind]["state"] == "ready"
-
-
-def ensure_model() -> None:
-    """Check the Ollama models are installed and download missing ones (first run). Background thread."""
-    if active_provider() != "ollama":
-        for k in model_status:
-            _set_status(k, "disabled", f"AI provider is {provider_name()}")
-        return
-    wanted = [("chat", settings.ollama_model)]
-    if settings.ollama_vision_model and settings.ollama_vision_model != settings.ollama_model:
-        wanted.append(("vision", settings.ollama_vision_model))
-    elif settings.ollama_vision_model == settings.ollama_model:
-        wanted.append(("vision", settings.ollama_model))
-    else:
-        _set_status("vision", "disabled", "No photo model configured — analyses use notes + leaf colour")
-    try:
-        with _http(15) as c:
-            tags = c.get("/api/tags").json().get("models", [])
-    except Exception as exc:  # Ollama not running / unreachable
-        log.warning("Ollama not available: %s", exc)
-        for kind, _ in wanted:
-            _set_status(kind, "unavailable", f"Can't reach Ollama at {settings.ollama_url}")
-        return
-    have = {m.get("name") for m in tags} | {m.get("model") for m in tags}
-    for kind, name in wanted:
-        if name in have or f"{name}:latest" in have:
-            _set_status(kind, "ready", name)
-        elif not settings.ollama_auto_pull:
-            _set_status(kind, "missing", f"Run: ollama pull {name}")
-        else:
-            _set_status(kind, "queued", f"Waiting to download {name}")
-    for kind, name in wanted:  # chat model first: it is smaller and powers the assistant
-        if model_status[kind]["state"] != "queued":
-            continue
-        _set_status(kind, "downloading", f"Downloading {name} (first run only)…")
-        log.info("Pulling Ollama model %s", name)
-        try:
-            with _http(None) as c:
-                c.post("/api/pull", json={"model": name, "stream": False}, timeout=None).raise_for_status()
-            _set_status(kind, "ready", name)
-        except Exception as exc:
-            log.warning("Could not download %s: %s", name, exc)
-            _set_status(kind, "missing", f"Download failed — run: ollama pull {name}")
-
-
-_watcher_started = False
-
-
-def _watch_models(interval: float = 20.0) -> None:
-    """Keep checking until the models are ready (Ollama may start after the API, e.g. in Docker)."""
-    import time
-
-    global _watcher_started
-    while True:
-        ensure_model()
-        if active_provider() != "ollama":
-            _watcher_started = False
-            return
-        if all(v["state"] in ("ready", "disabled") for v in model_status.values()):
-            _watcher_started = False
-            return
-        time.sleep(interval)
-
-
-def start_model_check() -> None:
-    """Called at startup and from POST /api/ai/recheck."""
-    global _watcher_started
-    if not _watcher_started:
-        _watcher_started = True
-        threading.Thread(target=_watch_models, daemon=True).start()
-    else:
-        threading.Thread(target=ensure_model, daemon=True).start()
-
-
 def ai_ready() -> bool:
     p = active_provider()
-    return p == "anthropic" or (p == "gemini" and bool(settings.gemini_api_key)) or (p == "ollama" and _ready("chat"))
-
-
-def vision_ready() -> bool:
-    p = active_provider()
-    return p == "anthropic" or (p == "gemini" and bool(settings.gemini_api_key)) or (p == "ollama" and _ready("vision"))
+    return p == "anthropic" or (p == "gemini" and bool(settings.gemini_api_key))
 
 
 def status_summary() -> dict:
     p = active_provider()
-    if p == "gemini":
-        configured = bool(settings.gemini_api_key)
-        return {
-            "provider": provider_name(),
-            "ai_ready": configured,
-            "vision_ready": configured,
-            "chat_model": settings.gemini_model,
-            "vision_model": settings.gemini_model,
-            "models": {},
-            "model_status": "ready" if configured else "missing",
-            "model_detail": "" if configured else "Set GEMINI_API_KEY in .env to enable Gemini Flash.",
-        }
+    ready = ai_ready()
+    model = settings.gemini_model if p == "gemini" else settings.anthropic_model if p == "anthropic" else None
     return {
         "provider": provider_name(),
-        "ai_ready": ai_ready(),
-        "vision_ready": vision_ready(),
-        "chat_model": settings.ollama_model if p == "ollama" else (settings.anthropic_model if p == "anthropic" else None),
-        "vision_model": (settings.ollama_vision_model or None) if p == "ollama" else (settings.anthropic_model if p == "anthropic" else None),
-        "models": model_status if p == "ollama" else {},
-        # compact fields used by the website
-        "model_status": "ready" if ai_ready() else model_status["chat"]["state"] if p == "ollama" else "disabled",
-        "model_detail": model_status["chat"]["detail"] if p == "ollama" else "",
+        "ai_ready": ready,
+        "vision_ready": ready,
+        "chat_model": model,
+        "vision_model": model,
+        "model_status": "ready" if ready else "missing" if p == "gemini" else "disabled",
+        "model_detail": "Set GEMINI_API_KEY in .env to enable Gemini Flash." if p == "gemini" and not ready else "",
     }
 
 
@@ -371,16 +274,11 @@ def _unavailable_note() -> str:
         if not settings.gemini_api_key:
             return "Gemini API key is missing; add GEMINI_API_KEY to .env. "
         return "Gemini Flash is unavailable, so this is an offline estimate. "
-    if active_provider() == "ollama":
-        st = model_status["chat"]["state"]
-        if st in ("downloading", "queued"):
-            return "The AI model is still downloading (first run only), so this is an offline estimate. "
-        return "The AI model isn't running, so this is an offline estimate. "
     return "The AI service is unavailable, so this is an offline estimate. "
 
 
 def _small_jpeg_b64(image_jpeg: bytes, max_side: int = 1024) -> str:
-    """Smaller images make local models much faster with little loss for leaf diagnosis."""
+    """Smaller images upload faster and cost fewer tokens, with little loss for leaf diagnosis."""
     try:
         img = Image.open(io.BytesIO(image_jpeg)).convert("RGB")
         img.thumbnail((max_side, max_side))
@@ -389,17 +287,6 @@ def _small_jpeg_b64(image_jpeg: bytes, max_side: int = 1024) -> str:
         return base64.b64encode(buf.getvalue()).decode()
     except Exception:
         return base64.b64encode(image_jpeg).decode()
-
-
-def _ollama_chat(model: str, messages: list[dict], fmt: dict | None = None, temperature: float = 0.3) -> str:
-    body = {"model": model, "stream": False, "keep_alive": "5m", "messages": messages,
-            "options": {"temperature": temperature, "num_ctx": 4096, "num_predict": 1024 if fmt else 512}}
-    if fmt:
-        body["format"] = fmt
-    with _http() as c:
-        r = c.post("/api/chat", json=body)
-        r.raise_for_status()
-        return r.json()["message"]["content"]
 
 
 def _parse_json(content: str) -> dict:
@@ -505,18 +392,18 @@ def normalize(r: dict, crop_hint: str | None) -> dict:
     return out
 
 
-
 # ---------------------------------------------------------------- analysis
 
 def analyze(image_jpeg: bytes, stats: dict, crop_hint: str | None, notes: str | None, lang: str = "en") -> dict:
-    """Photo → structured analysis. Order: vision model → Llama 3.2 text-only → offline knowledge base."""
+    """Photo → structured analysis. Order: Gemini (or Claude) → offline knowledge base."""
     crop_key = kb.normalize_crop(crop_hint)
     provider = active_provider()
     result = None
     if provider == "gemini" and settings.gemini_api_key:
         try:
-            result = normalize(_gemini_analysis(image_jpeg, stats, crop_hint, notes, lang), crop_hint)
-            result["engine"] = provider_name()
+            raw, model = _gemini_analysis(image_jpeg, stats, crop_hint, notes, lang)
+            result = normalize(raw, crop_hint)
+            result["engine"] = f"gemini:{model}"
         except Exception as exc:
             log.exception("Gemini analysis failed: %s", exc)
     elif provider == "anthropic":
@@ -525,29 +412,6 @@ def analyze(image_jpeg: bytes, stats: dict, crop_hint: str | None, notes: str | 
             result["engine"] = provider_name()
         except Exception as exc:
             log.exception("Claude analysis failed: %s", exc)
-    elif provider == "ollama":
-        attempts = []
-        if _ready("vision") or model_status["vision"]["state"] == "unknown":
-            attempts.append("vision")
-        if _ready("chat") or model_status["chat"]["state"] == "unknown":
-            attempts.append("text")
-        for mode in attempts:
-            try:
-                raw = _ollama_vision_analysis(image_jpeg, stats, crop_hint, notes, lang) if mode == "vision" \
-                    else _ollama_text_analysis(stats, crop_hint, notes, lang)
-                result = normalize(raw, crop_hint)
-                if mode == "vision":
-                    result["engine"] = f"ollama:{settings.ollama_vision_model}"
-                else:
-                    result["engine"] = f"ollama:{settings.ollama_model} (text-only)"
-                    result["crop_confidence"] = min(result["crop_confidence"], 0.5)
-                    result["summary"] = ("Based on your notes and leaf-colour measurements (no photo model installed): "
-                                         + result["summary"])
-                break
-            except Exception as exc:
-                log.exception("Ollama %s analysis failed: %s", mode, exc)
-                if isinstance(exc, httpx.TransportError):
-                    _set_status("vision" if mode == "vision" else "chat", "unavailable", f"Can't reach Ollama at {settings.ollama_url}")
     if result is None:
         result = offline_analysis(stats, crop_hint, notes)
         result["engine"] = "offline-knowledge-base"
@@ -557,14 +421,15 @@ def analyze(image_jpeg: bytes, stats: dict, crop_hint: str | None, notes: str | 
     result["fertilizer"] = kb.fertilizer_plan(crop_key or "tomato", result.get("growth_stage"),
                                               [i["name"] for i in result.get("issues", [])])
     result["colour_stats"] = stats
-    result["sources"] = [{"id": d["id"], "title": d["title"]} for d in
+    result["expert_check"] = expert_check(result)
+    result["sources"] =[{"id": d["id"], "title": d["title"]} for d in
                          kb.search(" ".join(i["name"] for i in result.get("issues", [])) or "harvest yield", crop_key, 3)]
     return result
 
 
 def _gemini_analysis(image_jpeg, stats, crop_hint, notes, lang) -> dict:
     ctx, _ = kb.context_block(f"{crop_hint or ''} {notes or ''} leaf spots yellow disease harvest", kb.normalize_crop(crop_hint), k=3)
-    text = _gemini_generate(
+    text, model = _gemini_generate(
         [{
             "role": "user",
             "parts": [
@@ -577,33 +442,76 @@ def _gemini_analysis(image_jpeg, stats, crop_hint, notes, lang) -> dict:
         temperature=0.2,
         max_output_tokens=8192,  # thinking tokens count toward this limit; too low truncates the JSON
     )
-    return _parse_json(text)
+    return _parse_json(text), model
 
 
-def _ollama_vision_analysis(image_jpeg, stats, crop_hint, notes, lang) -> dict:
-    ctx, _ = kb.context_block(f"{crop_hint or ''} {notes or ''} leaf spots yellow disease harvest", kb.normalize_crop(crop_hint), k=3)
-    content = _ollama_chat(settings.ollama_vision_model, [
-        {"role": "system", "content": _analysis_system(ctx, lang) + "\nRespond only with JSON that matches the schema."},
-        {"role": "user", "content": _analysis_user(crop_hint, notes, stats), "images": [_small_jpeg_b64(image_jpeg)]},
-    ], fmt=ANALYSIS_TOOL["input_schema"], temperature=0.2)
-    return _parse_json(content)
+# ---------------------------------------------------------------- expert check
+
+# Below this confidence, a diagnosis is a guess the farmer should confirm before buying or spraying anything.
+LOW_CONFIDENCE = 0.5
 
 
-def _ollama_text_analysis(stats, crop_hint, notes, lang) -> dict:
-    """Llama 3.2 can't see images: reason from the farmer's notes and measured leaf colours instead."""
-    ctx, _ = kb.context_block(f"{crop_hint or ''} {notes or ''} leaf spots yellow disease harvest", kb.normalize_crop(crop_hint), k=3)
-    pct = {k: f"{round(v * 100)}%" for k, v in stats.items()}
-    user = (
-        "You cannot see the photo. Base the analysis ONLY on these facts and say so; keep confidences low.\n"
-        f"Crop: {crop_hint or 'not specified'}\nFarmer's description: {notes or 'none'}\n"
-        f"Measured share of plant area — green {pct.get('green_ratio')}, yellow {pct.get('yellow_ratio')}, "
-        f"brown {pct.get('brown_ratio')}, red (ripe fruit) {pct.get('red_ratio')}; plant covers {pct.get('plant_coverage')} of the photo."
-    )
-    content = _ollama_chat(settings.ollama_model, [
-        {"role": "system", "content": _analysis_system(ctx, lang) + "\nRespond only with JSON that matches the schema."},
-        {"role": "user", "content": user},
-    ], fmt=ANALYSIS_TOOL["input_schema"], temperature=0.2)
-    return _parse_json(content)
+def expert_check(result: dict) -> dict:
+    """Flag analyses a farmer should confirm with an extension officer or agronomist before acting.
+
+    Wrong treatment advice costs money and can harm crops, so severe or uncertain results say so."""
+    found = []  # (code the apps translate, English text)
+    issues = result.get("issues") or []
+    if result.get("health_status") == "severe" or any(i.get("severity") == "high" for i in issues):
+        found.append(("severe", "A serious problem was found that can spread or cause heavy losses."))
+    if issues and max(i.get("confidence", 0) for i in issues) < LOW_CONFIDENCE:
+        found.append(("unsure_problem", "The AI is not sure what the problem is."))
+    if result.get("crop_confidence", 1) < LOW_CONFIDENCE:
+        found.append(("unsure_crop", "The AI is not sure which crop this is, so the advice may not fit."))
+    if str(result.get("engine", "")).startswith("offline"):
+        found.append(("offline", "This is an estimate from leaf colour only; the AI model was not available."))
+    return {"recommended": bool(found), "codes": [c for c, _ in found], "reasons": [r for _, r in found]}
+
+
+# ---------------------------------------------------------------- plant check
+
+PLANT_CHECK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "is_plant": {"type": "boolean", "description": "True only if a living plant or crop (leaves, stems, fruit, seedlings, a field of crops) is clearly visible."},
+        "reason": {"type": "string", "description": "One short sentence saying what the photo shows."},
+    },
+    "required": ["is_plant", "reason"],
+}
+
+NOT_A_PLANT_MESSAGE = (
+    "This photo doesn't show a plant, so it wasn't analysed. "
+    "Take a close, well-lit photo of the plant's leaves, stem or fruit and try again."
+)
+
+# Below this share of plant-coloured pixels the offline check treats a photo as "no plant".
+MIN_PLANT_COVERAGE = 0.08
+
+
+def check_plant(image_jpeg: bytes, stats: dict) -> tuple[bool, str]:
+    """Decide whether a photo shows a plant BEFORE analysing it. Returns (is_plant, what the photo shows).
+
+    Uses a fast Gemini model when available; otherwise (or if that call fails) the measured share of
+    plant-coloured pixels."""
+    if active_provider() == "gemini" and settings.gemini_api_key:
+        try:
+            text, _ = _gemini_generate(
+                [{"role": "user", "parts": [
+                    {"text": "Does this photo show a plant or crop? Pests or disease ON a plant count as a plant. "
+                             "Soil, tools, empty pots, people, animals, documents or screens without a plant do not."},
+                    {"inlineData": {"mimeType": "image/jpeg", "data": _small_jpeg_b64(image_jpeg, 512)}},
+                ]}],
+                "You check farm photos before they are analysed. Answer only with JSON that matches the schema.",
+                response_schema=PLANT_CHECK_SCHEMA,
+                temperature=0,
+                max_output_tokens=1024,
+                models=list(dict.fromkeys([settings.gemini_check_model, *_gemini_models()])),
+            )
+            verdict = _parse_json(text)
+            return bool(verdict.get("is_plant")), str(verdict.get("reason") or "")
+        except Exception as exc:
+            log.warning("Plant check with Gemini failed, using leaf-colour check: %s", exc)
+    return stats.get("plant_coverage", 0) >= MIN_PLANT_COVERAGE, ""
 
 
 def _claude_analysis(image_jpeg, stats, crop_hint, notes, lang) -> dict:
@@ -625,7 +533,6 @@ def _claude_analysis(image_jpeg, stats, crop_hint, notes, lang) -> dict:
     raise RuntimeError("Model did not return a structured analysis")
 
 
-
 # ---------------------------------------------------------------- offline fallback
 
 def offline_analysis(stats: dict, crop_hint: str | None, notes: str | None) -> dict:
@@ -634,7 +541,7 @@ def offline_analysis(stats: dict, crop_hint: str | None, notes: str | None) -> d
     crop_name = kb.crops()[crop_key]["name"] if crop_key else (crop_hint or "Unknown crop")
     y, b, r = stats["yellow_ratio"], stats["brown_ratio"], stats["red_ratio"]
     issues, treatment = [], []
-    if stats["plant_coverage"] < 0.08:
+    if stats["plant_coverage"] < MIN_PLANT_COVERAGE:
         return _not_plant(crop_name)
     if y > 0.15:
         issues.append({"name": "Leaf yellowing (possible nitrogen deficiency or overwatering)", "type": "nutrient",
@@ -672,7 +579,7 @@ def offline_analysis(stats: dict, crop_hint: str | None, notes: str | None) -> d
         "summary": ("Offline estimate based on leaf colour. " +
                     ("The plant looks generally healthy." if not issues else
                      f"Possible problems found: {', '.join(i['name'].split(' (')[0].lower() for i in issues)}.") +
-                    " Start the AI model (Ollama) for a full diagnosis."),
+                    " Connect the AI model for a full diagnosis."),
         "growth_stage": stage,
         "issues": issues,
         "treatment": treatment,
@@ -706,18 +613,15 @@ def _not_plant(crop_name: str) -> dict:
     }
 
 
-
 # ---------------------------------------------------------------- chat
 
-def chat(messages: list[dict], analysis: dict | None, image_jpeg: bytes | None, lang: str = "en",
-         image_stats: dict | None = None) -> dict:
+def chat(messages: list[dict], analysis: dict | None, image_jpeg: bytes | None, lang: str = "en") -> dict:
     last_user = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
     crop_key = kb.normalize_crop((analysis or {}).get("crop")) or kb.detect_crop(last_user)
     ctx, docs = kb.context_block(last_user, crop_key, k=3)
     sources = [{"id": d["id"], "title": d["title"]} for d in docs]
     provider = active_provider()
-    if provider == "offline" or (provider == "ollama" and model_status["chat"]["state"] not in ("ready", "unknown")) \
-            or (provider == "gemini" and not settings.gemini_api_key):
+    if not ai_ready():
         prefix = "" if provider == "offline" else _unavailable_note().replace("this is an offline estimate", "here's guidance from the knowledge base") + "\n\n"
         return {"reply": prefix + _offline_reply(last_user, crop_key, analysis, docs), "sources": sources, "provider": "offline-knowledge-base"}
 
@@ -727,27 +631,15 @@ def chat(messages: list[dict], analysis: dict | None, image_jpeg: bytes | None, 
     system = _chat_system(ctx, analysis, lang)
     used = provider_name()
     try:
-        if provider == "ollama":
-            model = settings.ollama_model
-            if image_jpeg and hist:
-                if _ready("vision"):  # Llama 3.2 is text-only → photo questions go to the vision model
-                    model = settings.ollama_vision_model
-                    hist[-1]["images"] = [_small_jpeg_b64(image_jpeg)]
-                elif image_stats:
-                    pct = {k: f"{round(v * 100)}%" for k, v in image_stats.items()}
-                    system += ("\n\nThe farmer attached a photo you cannot see. Measured share of plant area: "
-                               f"green {pct.get('green_ratio')}, yellow {pct.get('yellow_ratio')}, brown {pct.get('brown_ratio')}, "
-                               f"red {pct.get('red_ratio')}. Say you can't see the photo and ask them to describe it.")
-            text = _ollama_chat(model, [{"role": "system", "content": system}, *hist], temperature=0.4).strip()
-            used = f"ollama:{model}"
-        elif provider == "gemini":
-            text = _gemini_generate(
+        if provider == "gemini":
+            text, model = _gemini_generate(
                 _gemini_chat_contents(hist, image_jpeg),
                 system,
                 temperature=0.4,
                 max_output_tokens=2048,
-            ).strip()
-            used = provider_name()
+            )
+            text = text.strip()
+            used = f"gemini:{model}"
         else:
             import anthropic
 
@@ -762,8 +654,6 @@ def chat(messages: list[dict], analysis: dict | None, image_jpeg: bytes | None, 
             raise RuntimeError("empty reply")
     except Exception as exc:
         log.exception("%s chat failed: %s", provider, exc)
-        if provider == "ollama" and isinstance(exc, httpx.TransportError):
-            _set_status("chat", "unavailable", f"Can't reach Ollama at {settings.ollama_url}")
         text = "The AI model is unavailable right now, so here's guidance from the knowledge base.\n\n" + \
                _offline_reply(last_user, crop_key, analysis, docs)
         return {"reply": text, "sources": sources, "provider": "offline-knowledge-base"}

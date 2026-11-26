@@ -1,6 +1,5 @@
-# Crop Advisor AI — website + API + database + open-source AI (Ollama)
+# Crop Advisor AI — website + API + database, with Google Gemini as the AI
 #   docker compose up -d --build        then open http://localhost:8080
-# First start downloads the AI models into the persistent ollama_data volume.
 services:
   web:
     build: ./web
@@ -25,35 +24,18 @@ services:
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
       GEMINI_TIMEOUT: ${GEMINI_TIMEOUT:-60}
       GEMINI_FALLBACK_MODELS: ${GEMINI_FALLBACK_MODELS:-gemini-flash-lite-latest}
-      # Same settings as the Dietitian AI API — point OLLAMA_BASE_URL at an existing Ollama server to share it.
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
-      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-qwen3-vl:2b}
-      OLLAMA_AUTO_PULL: ${OLLAMA_AUTO_PULL:-true}
+      GEMINI_FIRST_TIMEOUT: ${GEMINI_FIRST_TIMEOUT:-25}
+      GEMINI_CHECK_MODEL: ${GEMINI_CHECK_MODEL:-gemini-flash-lite-latest}
+      ANALYZE_PER_HOUR: ${ANALYZE_PER_HOUR:-30}
+      CHAT_PER_HOUR: ${CHAT_PER_HOUR:-120}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:8081,http://localhost:19006}
       UPLOAD_DIR: /data/uploads
-    ports:
-      - "8000:8000"
+    # No published port: the website, and the phone app, reach the API through nginx on :8080,
+    # which also tells the API each caller's real address for the request limits.
+    expose:
+      - "8000"
     volumes:
       - uploads:/data/uploads
-
-  ollama:
-    profiles: ["ollama"]
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    environment:
-      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-1}
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    # NVIDIA GPU (much faster). Needs the NVIDIA Container Toolkit; remove the comment marks to enable.
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
 
   db:
     image: postgres:16-alpine
@@ -73,4 +55,3 @@ services:
 volumes:
   pgdata:
   uploads:
-  ollama_data:

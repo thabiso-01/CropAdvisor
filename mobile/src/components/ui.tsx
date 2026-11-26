@@ -4,7 +4,9 @@ import { router } from 'expo-router';
 import { ReactNode, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleProp,
@@ -25,6 +27,17 @@ export const Icon = MaterialCommunityIcons;
 /* ---------------- header (Home / Analysis / Fertilizer screens) ---------------- */
 export function ScreenHeader({ title, subtitle, back, right }: { title: string; subtitle?: string; back?: boolean; right?: ReactNode }) {
   const [langOpen, setLangOpen] = useState(false);
+  const { user, signOut, t } = useStore();
+  const confirmSignOut = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm(t('auth.signOutConfirm'))) signOut();
+      return;
+    }
+    Alert.alert(t('auth.signOut'), t('auth.signOutConfirm'), [
+      { text: t('common.close'), style: 'cancel' },
+      { text: t('auth.signOut'), style: 'destructive', onPress: signOut },
+    ]);
+  };
   return (
     <View style={s.header}>
       {back && (
@@ -37,9 +50,14 @@ export function ScreenHeader({ title, subtitle, back, right }: { title: string; 
         {subtitle ? <Text style={s.headerSub}>{subtitle}</Text> : null}
       </View>
       {right}
-      <Pressable accessibilityLabel="Change language" onPress={() => setLangOpen(true)} style={s.circleBtn}>
+      <Pressable accessibilityLabel={t('common.language')} onPress={() => setLangOpen(true)} style={s.circleBtn}>
         <Icon name="translate" size={20} color={colors.primaryDark} />
       </Pressable>
+      {user && (
+        <Pressable accessibilityLabel={t('auth.signOut')} onPress={confirmSignOut} style={s.circleBtn}>
+          <Icon name="logout" size={20} color={colors.primaryDark} />
+        </Pressable>
+      )}
       <LanguageModal visible={langOpen} onClose={() => setLangOpen(false)} />
     </View>
   );

@@ -8,7 +8,7 @@ from collections import Counter
 from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from PIL import UnidentifiedImageError
@@ -19,7 +19,10 @@ from sqlalchemy.orm import Session
 from . import ai, imaging
 from . import knowledge as kb
 from .config import settings
-from .db import Analysis, get_session, init_db
+from .auth import current_user
+from .auth import router as auth_router
+from .db import Analysis, User, get_session, init_db
+from .ratelimit import client_ip, limiter
 
 logging.basicConfig(level=logging.INFO)
 settings.upload_dir.mkdir(parents=True, exist_ok=True)
@@ -28,17 +31,13 @@ settings.upload_dir.mkdir(parents=True, exist_ok=True)
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
-    ai.start_model_check()  # downloads the open-source model on first run if needed
     yield
 
 
 app = FastAPI(title="Crop Advisor AI API", version="1.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["*"], allow_headers=["*"])
 app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
-
-
-def device(x_device_id: str | None = Header(default=None)) -> str:
-    return (x_device_id or "anonymous")[:64]
+app.include_router(auth_router)
 
 
 def serialize(a: Analysis, full: bool = True) -> dict:
@@ -55,9 +54,9 @@ def serialize(a: Analysis, full: bool = True) -> dict:
     return out
 
 
-def _load(session: Session, analysis_id: str, dev: str) -> Analysis:
+def _load(session: Session, analysis_id: str, user: User) -> Analysis:
     a = session.get(Analysis, analysis_id)
-    if not a or a.device_id != dev:
+    if not a or a.user_id != user.id:
         raise HTTPException(404, "Analysis not found")
     return a
 
@@ -69,35 +68,39 @@ def health():
     return {"status": "ok", **ai.status_summary()}
 
 
-@app.post("/api/ai/recheck")
-def recheck_model():
-    """Ask the server to look for the model again (e.g. after starting Ollama)."""
-    ai.start_model_check()
-    return {"status": "checking"}
-
-
+# A plain `def` (not `async def`): FastAPI runs it in a worker thread, so a slow AI call
+# doesn't freeze the server for everyone else.
 @app.post("/api/analyze")
-async def analyze(
+def analyze(
+    request: Request,
     image: UploadFile = File(...),
     crop: str | None = Form(default=None),
     notes: str | None = Form(default=None),
     lang: str = Form(default="en"),
     session: Session = Depends(get_session),
-    dev: str = Depends(device),
+    user: User = Depends(current_user),
+    x_device_id: str | None = Header(default=None),
 ):
-    data = await image.read()
+    data = image.file.read(settings.max_upload_mb * 1024 * 1024 + 1)
     if len(data) > settings.max_upload_mb * 1024 * 1024:
         raise HTTPException(413, f"Image larger than {settings.max_upload_mb} MB")
     try:
         jpeg, img = imaging.prepare(data)
     except (UnidentifiedImageError, OSError):
         raise HTTPException(400, "Could not read the image. Please upload a JPEG, PNG or WebP photo.")
+    limiter.hit([f"analyze:user:{user.id}", f"analyze:ip:{client_ip(request)}"], settings.analyze_per_hour)
     stats = imaging.colour_stats(img)
+    # Photos without a plant are turned away before any analysis is run or saved.
+    is_plant, seen = ai.check_plant(jpeg, stats)
+    if not is_plant:
+        raise HTTPException(422, ai.NOT_A_PLANT_MESSAGE + (f" (The photo seems to show: {seen.rstrip('.')}.)" if seen else ""))
     result = ai.analyze(jpeg, stats, crop, notes, lang)
+    if not result.get("is_plant", True):
+        raise HTTPException(422, ai.NOT_A_PLANT_MESSAGE)
     filename = f"{uuid.uuid4().hex}.jpg"
     (settings.upload_dir / filename).write_bytes(jpeg)
     a = Analysis(
-        device_id=dev, crop=result.get("crop") or crop or "Unknown", image_file=filename, notes=notes, lang=lang,
+        user_id=user.id, device_id=(x_device_id or "")[:64], crop=result.get("crop") or crop or "Unknown", image_file=filename, notes=notes, lang=lang,
         health_score=int(result.get("health_score", 0)), health_status=result.get("health_status", "healthy"),
         provider=result.get("engine", ai.provider_name()), result=result,
     )
@@ -107,16 +110,16 @@ async def analyze(
 
 
 @app.get("/api/analyses")
-def list_analyses(favorite: bool | None = None, limit: int = 100, session: Session = Depends(get_session), dev: str = Depends(device)):
-    q = select(Analysis).where(Analysis.device_id == dev).order_by(Analysis.created_at.desc()).limit(min(limit, 500))
+def list_analyses(favorite: bool | None = None, limit: int = 100, session: Session = Depends(get_session), user: User = Depends(current_user)):
+    q = select(Analysis).where(Analysis.user_id == user.id).order_by(Analysis.created_at.desc()).limit(min(limit, 500))
     if favorite is not None:
         q = q.where(Analysis.favorite == favorite)
     return [serialize(a, full=False) for a in session.scalars(q)]
 
 
 @app.get("/api/analyses/{analysis_id}")
-def get_analysis(analysis_id: str, session: Session = Depends(get_session), dev: str = Depends(device)):
-    return serialize(_load(session, analysis_id, dev))
+def get_analysis(analysis_id: str, session: Session = Depends(get_session), user: User = Depends(current_user)):
+    return serialize(_load(session, analysis_id, user))
 
 
 class FavoriteIn(BaseModel):
@@ -124,16 +127,16 @@ class FavoriteIn(BaseModel):
 
 
 @app.patch("/api/analyses/{analysis_id}/favorite")
-def set_favorite(analysis_id: str, body: FavoriteIn, session: Session = Depends(get_session), dev: str = Depends(device)):
-    a = _load(session, analysis_id, dev)
+def set_favorite(analysis_id: str, body: FavoriteIn, session: Session = Depends(get_session), user: User = Depends(current_user)):
+    a = _load(session, analysis_id, user)
     a.favorite = body.favorite
     session.commit()
     return serialize(a, full=False)
 
 
 @app.delete("/api/analyses/{analysis_id}", status_code=204)
-def delete_analysis(analysis_id: str, session: Session = Depends(get_session), dev: str = Depends(device)):
-    a = _load(session, analysis_id, dev)
+def delete_analysis(analysis_id: str, session: Session = Depends(get_session), user: User = Depends(current_user)):
+    a = _load(session, analysis_id, user)
     (settings.upload_dir / a.image_file).unlink(missing_ok=True)
     session.delete(a)
     session.commit()
@@ -152,8 +155,9 @@ class ChatIn(BaseModel):
 
 
 @app.post("/api/chat")
-def chat(body: ChatIn, session: Session = Depends(get_session), dev: str = Depends(device)):
-    analysis = _load(session, body.analysis_id, dev).result if body.analysis_id else None
+def chat(body: ChatIn, request: Request, session: Session = Depends(get_session), user: User = Depends(current_user)):
+    limiter.hit([f"chat:user:{user.id}", f"chat:ip:{client_ip(request)}"], settings.chat_per_hour)
+    analysis = _load(session, body.analysis_id, user).result if body.analysis_id else None
     jpeg = stats = None
     if body.image_base64:
         raw = body.image_base64.split(",", 1)[-1]
@@ -165,7 +169,7 @@ def chat(body: ChatIn, session: Session = Depends(get_session), dev: str = Depen
         if analysis is None and not ai.ai_ready():
             # knowledge-base mode: give the reply some image context via colour analysis
             analysis = ai.offline_analysis(stats, None, body.messages[-1].content)
-    return ai.chat([m.model_dump() for m in body.messages], analysis, jpeg, body.lang, image_stats=stats)
+    return ai.chat([m.model_dump() for m in body.messages], analysis, jpeg, body.lang)
 
 
 class FertilizerIn(BaseModel):
@@ -175,9 +179,9 @@ class FertilizerIn(BaseModel):
 
 
 @app.post("/api/fertilizer")
-def fertilizer(body: FertilizerIn, session: Session = Depends(get_session), dev: str = Depends(device)):
+def fertilizer(body: FertilizerIn, session: Session = Depends(get_session), user: User = Depends(current_user)):
     if body.analysis_id:
-        r = _load(session, body.analysis_id, dev).result
+        r = _load(session, body.analysis_id, user).result
         return kb.fertilizer_plan(body.crop or r.get("crop"), body.stage or r.get("growth_stage"),
                                   [i["name"] for i in r.get("issues", [])])
     return kb.fertilizer_plan(body.crop, body.stage)
@@ -204,8 +208,8 @@ def guide_detail(guide_id: str):
 
 
 @app.get("/api/stats")
-def stats(session: Session = Depends(get_session), dev: str = Depends(device)):
-    rows = list(session.scalars(select(Analysis).where(Analysis.device_id == dev).order_by(Analysis.created_at)))
+def stats(session: Session = Depends(get_session), user: User = Depends(current_user)):
+    rows = list(session.scalars(select(Analysis).where(Analysis.user_id == user.id).order_by(Analysis.created_at)))
     issues = Counter(i["name"].split(" (")[0] for a in rows for i in a.result.get("issues", []))
     return {
         "total": len(rows),

@@ -41,6 +41,7 @@ export type AnalysisResult = {
   follow_up_questions?: string[];
   fertilizer: FertilizerPlan;
   colour_stats?: Record<string, number>;
+  expert_check?: { recommended: boolean; reasons: string[] };
   sources?: { id: string; title: string }[];
 };
 
@@ -78,14 +79,17 @@ export type Stats = {
 
 export type ChatMsg = { role: 'user' | 'assistant'; content: string };
 
-/** Resolve the backend URL: env var > Expo dev host (same LAN IP, port 8000) > localhost. */
+/** Resolve the backend URL: env var > Expo dev host (same LAN IP) > localhost.
+ * Port 8080 = the Docker website, whose nginx forwards /api and /uploads to the API.
+ * Running the API without Docker (uvicorn on :8000)? Set EXPO_PUBLIC_API_URL=http://<your-ip>:8000. */
+const PORT = 8080;
 function resolveBaseUrl(): string {
   const env = process.env.EXPO_PUBLIC_API_URL;
   if (env) return env.replace(/\/$/, '');
-  if (Platform.OS === 'web' && typeof window !== 'undefined') return `${window.location.protocol}//${window.location.hostname}:8000`;
+  if (Platform.OS === 'web' && typeof window !== 'undefined') return `${window.location.protocol}//${window.location.hostname}:${PORT}`;
   const host = Constants.expoConfig?.hostUri?.split(':')[0];
-  if (host) return `http://${host}:8000`;
-  return Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
+  if (host) return `http://${host}:${PORT}`;
+  return Platform.OS === 'android' ? `http://10.0.2.2:${PORT}` : `http://localhost:${PORT}`;
 }
 
 export const API_URL = resolveBaseUrl();
@@ -96,27 +100,56 @@ export const setDeviceId = (id: string) => {
   deviceId = id;
 };
 
+// Sign-in token from /api/auth/login or /register, sent on every request.
+let token: string | null = null;
+export const setToken = (t: string | null) => {
+  token = t;
+};
+let onSignedOut = () => {};
+/** Called when the server says the session has ended, so the app can show the sign-in screen. */
+export const setOnSignedOut = (fn: () => void) => {
+  onSignedOut = fn;
+};
+
+export type User = { id: string; name: string; identifier: string };
+export type AuthResult = { token: string; user: User };
+
+/** An error from the server; `status` lets screens show a translated message (see i18n errorText). */
+export class ApiError extends Error {
+  constructor(message: string, public status?: number, public code?: string) {
+    super(message);
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = { 'X-Device-Id': deviceId, ...(init.headers as Record<string, string>) };
+  if (token) headers.Authorization = `Bearer ${token}`;
   if (init.body && !(init.body instanceof FormData)) headers['Content-Type'] = 'application/json';
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, { ...init, headers });
   } catch {
-    throw new Error(`Can't reach the Crop Advisor server at ${API_URL}. Check that it's running and your phone is on the same network.`);
+    throw new ApiError(`Can't reach the Crop Advisor server at ${API_URL}. Check that it's running and your phone is on the same network.`, undefined, 'network');
   }
+  if (res.status === 401 && token) onSignedOut();
   if (!res.ok) {
     let detail = `Request failed (${res.status})`;
     try {
       const body = await res.json();
       if (body?.detail) detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
     } catch {}
-    throw new Error(detail);
+    throw new ApiError(detail, res.status);
   }
   return res.status === 204 ? (undefined as T) : res.json();
 }
 
 export const api = {
+  register: (name: string, identifier: string, password: string) =>
+    request<AuthResult>('/api/auth/register', { method: 'POST', body: JSON.stringify({ name, identifier, password }) }),
+  login: (identifier: string, password: string) =>
+    request<AuthResult>('/api/auth/login', { method: 'POST', body: JSON.stringify({ identifier, password }) }),
+  logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
+  me: () => request<User>('/api/auth/me'),
   async analyze(uri: string, opts: { crop?: string; notes?: string; lang: string }) {
     const form = new FormData();
     if (Platform.OS === 'web') {

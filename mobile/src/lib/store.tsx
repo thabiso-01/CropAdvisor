@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { api, ChatMsg, setDeviceId } from './api';
+import { translate, T } from '../i18n';
+import { api, AuthResult, ChatMsg, setDeviceId, setOnSignedOut, setToken, User } from './api';
+import { LANGUAGES } from './theme';
 
 export type UiMessage = ChatMsg & { id: string; at: number; image?: string; sources?: { id: string; title: string }[] };
 
@@ -15,6 +17,12 @@ export const WELCOME: UiMessage = {
 
 type Store = {
   ready: boolean;
+  /** the signed-in farmer, or null: the app shows the sign-in screen until someone signs in */
+  user: User | null;
+  signIn: (r: AuthResult) => void;
+  signOut: () => void;
+  /** screen text in the chosen language */
+  t: T;
   lang: string;
   setLang: (l: string) => void;
   favoritesCount: number;
@@ -38,31 +46,64 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [messages, setMessagesState] = useState<UiMessage[]>([WELCOME]);
   const [chatAnalysisId, setChatAnalysisId] = useState<string>();
   const [version, setVersion] = useState(0);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     (async () => {
+      // The server only shows a device its own scans, so the id must be random and never 'anonymous'.
+      const newId = () =>
+        `dev-${globalThis.crypto?.randomUUID?.() ?? `${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`}`;
+      setDeviceId(newId()); // used for this session if phone storage is unavailable
       try {
         let id = await AsyncStorage.getItem('deviceId');
         if (!id) {
-          id = `dev-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+          id = newId();
           await AsyncStorage.setItem('deviceId', id);
         }
         setDeviceId(id);
-        const [l, chat] = await Promise.all([AsyncStorage.getItem('lang'), AsyncStorage.getItem('chat')]);
-        if (l) setLangState(l);
+        const [l, chat, saved] = await Promise.all([AsyncStorage.getItem('lang'), AsyncStorage.getItem('chat'), AsyncStorage.getItem('auth')]);
+        if (saved) {
+          const auth = JSON.parse(saved) as AuthResult;
+          setToken(auth.token);
+          setUser(auth.user);
+          api.me().then(setUser).catch(() => {}); // a 401 here signs out via setOnSignedOut
+        }
+        if (l && LANGUAGES.some((x) => x.code === l)) setLangState(l); // older saved languages fall back to English
         if (chat) setMessagesState(JSON.parse(chat));
       } catch {}
       setReady(true);
     })();
   }, []);
 
+  const signOut = useCallback((callServer = true) => {
+    if (callServer) api.logout().catch(() => {});
+    setToken(null);
+    setUser(null);
+    setMessagesState([WELCOME]); // don't show one farmer's chat to the next
+    setChatAnalysisId(undefined);
+    AsyncStorage.multiRemove(['auth', 'chat']).catch(() => {});
+  }, []);
+
+  const signIn = useCallback((r: AuthResult) => {
+    setToken(r.token);
+    setUser(r.user);
+    AsyncStorage.setItem('auth', JSON.stringify(r)).catch(() => {});
+    setVersion((v) => v + 1);
+  }, []);
+
+  useEffect(() => {
+    setOnSignedOut(() => signOut(false));
+  }, [signOut]);
+
+  const t = useCallback<T>((key, vars) => translate(lang, key, vars), [lang]);
+
   const refreshFavorites = useCallback(() => {
     api.list(true).then((r) => setFavoritesCount(r.length)).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (ready) refreshFavorites();
-  }, [ready, version, refreshFavorites]);
+    if (ready && user) refreshFavorites();
+  }, [ready, user, version, refreshFavorites]);
 
   const setMessages = useCallback((fn: (m: UiMessage[]) => UiMessage[]) => {
     setMessagesState((prev) => {
@@ -75,6 +116,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Store>(
     () => ({
       ready,
+      user,
+      signIn,
+      signOut: () => signOut(true),
+      t,
       lang,
       setLang: (l) => {
         setLangState(l);
@@ -90,7 +135,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       version,
       bump: () => setVersion((v) => v + 1),
     }),
-    [ready, lang, favoritesCount, refreshFavorites, messages, setMessages, chatAnalysisId, version],
+    [ready, user, signIn, signOut, t, lang, favoritesCount, refreshFavorites, messages, setMessages, chatAnalysisId, version],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

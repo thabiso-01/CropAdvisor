@@ -14,3 +14,4 @@ venv/
 !.env.example
 *.local
 .DS_Store
+backups/

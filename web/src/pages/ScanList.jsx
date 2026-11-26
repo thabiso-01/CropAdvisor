@@ -3,13 +3,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 
 import { api } from '../api.js'
+import { errorText } from '../i18n/index.js'
 import { useStore } from '../store.jsx'
 import { Empty, ErrorBox, PageHead, ScanCard, Spinner } from '../ui.jsx'
 
-const FILTERS = [['all', 'All'], ['healthy', 'Healthy'], ['issues', 'Needs attention'], ['ready', 'Ready to harvest']]
+const FILTERS = [['all', 'list.all'], ['healthy', 'list.healthy'], ['issues', 'list.needsAttention'], ['ready', 'list.readyToHarvest']]
 
 export default function ScanList({ favorites }) {
-  const { version, bump } = useStore()
+  const { version, bump, t } = useStore()
   const [items, setItems] = useState(null)
   const [err, setErr] = useState('')
   const [q, setQ] = useState('')
@@ -17,8 +18,8 @@ export default function ScanList({ favorites }) {
 
   const load = useCallback(() => {
     setErr('')
-    api.list(favorites ? true : undefined).then(setItems).catch((e) => { setErr(e.message); setItems([]) })
-  }, [favorites])
+    api.list(favorites ? true : undefined).then(setItems).catch((e) => { setErr(errorText(t, e)); setItems([]) })
+  }, [favorites, t])
   useEffect(() => { load() }, [load, version])
 
   const shown = useMemo(() => (items ?? []).filter((i) => {
@@ -37,12 +38,12 @@ export default function ScanList({ favorites }) {
 
   return (
     <>
-      <PageHead title={favorites ? 'Favorites' : 'History'} sub={favorites ? "Plants you're keeping an eye on" : 'All your plant analyses'} />
+      <PageHead title={favorites ? t('list.favoritesTitle') : t('list.historyTitle')} sub={favorites ? t('list.favoritesSub') : t('list.historySub')} />
       {err && <ErrorBox message={err} onRetry={load} />}
       <div className="toolbar">
-        <label className="search"><Search size={18} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search crop or problem" aria-label="Search" /></label>
+        <label className="search"><Search size={18} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('list.searchPlaceholder')} aria-label={t('common.search')} /></label>
         {!favorites && (
-          <div className="chips">{FILTERS.map(([k, l]) => <button type="button" key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setFilter(k)}>{l}</button>)}</div>
+          <div className="chips">{FILTERS.map(([k, l]) => <button type="button" key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setFilter(k)}>{t(l)}</button>)}</div>
         )}
       </div>
       {items === null ? <Spinner /> : shown.length ? (
@@ -50,10 +51,10 @@ export default function ScanList({ favorites }) {
       ) : (
         <Empty
           icon={favorites ? Star : Clock3}
-          title={favorites ? 'No favorites yet' : items.length ? 'Nothing matches' : 'No analyses yet'}
-          text={favorites ? 'Tap the star on any analysis to keep it here.' : 'Scan a plant to get your first health report.'}
+          title={favorites ? t('list.noFavorites') : items.length ? t('list.nothingMatches') : t('list.noAnalyses')}
+          text={favorites ? t('list.favoritesHint') : t('list.historyHint')}
         >
-          {!items.length && <Link to="/" className="btn"><Camera size={17} /> Scan a plant</Link>}
+          {!items.length && <Link to="/" className="btn"><Camera size={17} /> {t('common.scanAPlant')}</Link>}
         </Empty>
       )}
     </>

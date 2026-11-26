@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Start everything with Docker (website + API + AI + database)",
+      "label": "Start everything with Docker (website + API + database)",
       "type": "shell",
       "command": "docker compose up -d --build && echo Open http://localhost:8080 && docker compose logs -f api",
       "isBackground": true,
@@ -15,9 +15,9 @@
       "problemMatcher": []
     },
     {
-      "label": "AI: download models into Ollama (llama3.2 + qwen3-vl:4b)",
+      "label": "Back up database and photos (Docker)",
       "type": "shell",
-      "command": "ollama pull llama3.2 && ollama pull qwen3-vl:4b",
+      "command": "python scripts/backup.py",
       "problemMatcher": []
     },
     {

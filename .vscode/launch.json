@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Backend: FastAPI (local, SQLite, Ollama on localhost)",
+      "name": "Backend: FastAPI (local, SQLite, Gemini)",
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
@@ -11,8 +11,7 @@
       "envFile": "${workspaceFolder}/.env",
       "env": {
         "DATABASE_URL": "sqlite:///./data/crop_advisor.db",
-        "UPLOAD_DIR": "./data/uploads",
-        "OLLAMA_BASE_URL": "http://localhost:11434"
+        "UPLOAD_DIR": "./data/uploads"
       },
       "jinja": true,
       "justMyCode": true

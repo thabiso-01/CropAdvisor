@@ -51,15 +51,17 @@ export const CROPS = [
   { id: 'spinach', name: 'Spinach', icon: 'leaf' },
 ] as const;
 
+// South Africa's 11 official spoken languages, each named in its own language.
 export const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'af', name: 'Afrikaans' },
   { code: 'zu', name: 'isiZulu' },
   { code: 'xh', name: 'isiXhosa' },
+  { code: 'nr', name: 'isiNdebele' },
+  { code: 'nso', name: 'Sepedi' },
   { code: 'st', name: 'Sesotho' },
-  { code: 'sw', name: 'Kiswahili' },
-  { code: 'hi', name: 'हिन्दी (Hindi)' },
-  { code: 'fr', name: 'Français' },
-  { code: 'pt', name: 'Português' },
-  { code: 'es', name: 'Español' },
+  { code: 'tn', name: 'Setswana' },
+  { code: 'ss', name: 'siSwati' },
+  { code: 've', name: 'Tshivenḓa' },
+  { code: 'ts', name: 'Xitsonga' },
 ];

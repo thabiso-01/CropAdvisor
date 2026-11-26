@@ -62,7 +62,7 @@ export default function Home() {
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <ScreenHeader title="Crop Advisor AI" subtitle="Digital Kisan Advisor" />
+        <ScreenHeader title="Crop Advisor AI" />
 
         <View style={{ paddingHorizontal: 18, gap: 16 }}>
           {/* hero / photo */}

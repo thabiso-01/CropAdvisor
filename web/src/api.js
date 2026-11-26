@@ -4,31 +4,47 @@ const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
 let deviceId = 'anonymous'
 export const setDeviceId = (id) => { deviceId = id }
+
+// Sign-in token from /api/auth/login or /register, sent on every request.
+let token = null
+export const setToken = (t) => { token = t }
+let onSignedOut = () => {}
+/** Called when the server says the session has ended, so the app can show the sign-in page. */
+export const setOnSignedOut = (fn) => { onSignedOut = fn }
 export const imageUrl = (path) => (path?.startsWith('http') ? path : `${BASE}${path}`)
 
 async function request(path, { body, method = body ? 'POST' : 'GET', form } = {}) {
   const headers = { 'X-Device-Id': deviceId }
+  if (token) headers.Authorization = `Bearer ${token}`
   if (body) headers['Content-Type'] = 'application/json'
   let res
   try {
     res = await fetch(`${BASE}${path}`, { method, headers, body: form ?? (body ? JSON.stringify(body) : undefined) })
   } catch {
-    throw new Error("Can't reach the Crop Advisor server. Check that the backend is running.")
+    const e = new Error("Can't reach the Crop Advisor server. Check that the backend is running.")
+    e.code = 'network'
+    throw e
   }
+  if (res.status === 401 && token) onSignedOut()
   if (!res.ok) {
     let msg = `Request failed (${res.status})`
     try {
       const d = await res.json()
       if (d?.detail) msg = typeof d.detail === 'string' ? d.detail : JSON.stringify(d.detail)
     } catch { /* not json */ }
-    throw new Error(msg)
+    const e = new Error(msg)
+    e.status = res.status // lets the screens show a translated message (see i18n errorText)
+    throw e
   }
   return res.status === 204 ? null : res.json()
 }
 
 export const api = {
   health: () => request('/health'),
-  recheckModel: () => request('/api/ai/recheck', { method: 'POST' }),
+  register: (name, identifier, password) => request('/api/auth/register', { body: { name, identifier, password } }),
+  login: (identifier, password) => request('/api/auth/login', { body: { identifier, password } }),
+  logout: () => request('/api/auth/logout', { method: 'POST' }),
+  me: () => request('/api/auth/me'),
   analyze: (file, { crop, notes, lang }) => {
     const form = new FormData()
     form.append('image', file, file.name || 'plant.jpg')
